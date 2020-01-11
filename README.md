@@ -151,10 +151,6 @@ On Linux you get a standalone executable. It will depend on GTK3 and GtkWebkit2,
 
 On Windows you probably would like to have a custom icon for your executable. It can be done by providing a resource file, compiling it and linking with it,icon by id 100 in resource if exist used for window icon, by [rsrc](https://github.com/srfirouzi/rsrc) can make this elements
 
-You may find some example build scripts for all three platforms [here](https://github.com/naivesound/glitch/tree/master/dist).
-
-Also, if you want to cross-compile your webui app - use [xgo](https://github.com/karalabe/xgo).
-
 ## WebUI for C developers
 
 ### Getting started
