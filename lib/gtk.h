@@ -28,12 +28,18 @@ struct webui;
 typedef void (*webui_external_invoke_cb_t)(struct webui *w,
                                              const char *arg);
 
+enum webui_border_type{
+  WEBUI_BORDER_NONE=2,
+  WEBUI_BORDER_DIALOG=1,
+  WEBUI_BORDER_SIZABLE=0
+};
+
 struct webui {
   const char *url;
   const char *title;
   int width;
   int height;
-  int resizable;
+  int border;
   int debug;
   webui_external_invoke_cb_t external_invoke_cb;
   struct webui_priv priv;
@@ -85,7 +91,7 @@ static const char *webui_check_url(const char *url) {
 }
 
 WEBUI_API int webui(const char *title, const char *url, int width,
-                        int height, int resizable);
+                        int height, int border);
 
 WEBUI_API int webui_init(struct webui *w);
 WEBUI_API int webui_loop(struct webui *w, int blocking);
@@ -108,14 +114,14 @@ WEBUI_API void webui_print_log(const char *s);
 
 
 WEBUI_API int webui(const char *title, const char *url, int width,
-                        int height, int resizable) {
+                        int height, int border) {
   struct webui webui;
   memset(&webui, 0, sizeof(webui));
   webui.title = title;
   webui.url = url;
   webui.width = width;
   webui.height = height;
-  webui.resizable = resizable;
+  webui.border = border;
   int r = webui_init(&webui);
   if (r != 0) {
     return r;
@@ -231,13 +237,21 @@ WEBUI_API int webui_init(struct webui *w) {
   w->priv.window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
   gtk_window_set_title(GTK_WINDOW(w->priv.window), w->title);
 
-  if (w->resizable) {
-    gtk_window_set_default_size(GTK_WINDOW(w->priv.window), w->width,
-                                w->height);
-  } else {
-    gtk_widget_set_size_request(w->priv.window, w->width, w->height);
+  switch (w->border){
+    case WEBUI_BORDER_SIZABLE:
+      gtk_window_set_default_size(GTK_WINDOW(w->priv.window), w->width, w->height);
+      gtk_window_set_resizable(GTK_WINDOW(w->priv.window), TRUE);
+      break;
+    case WEBUI_BORDER_DIALOG:
+      gtk_widget_set_size_request(w->priv.window, w->width, w->height);
+      gtk_window_set_resizable(GTK_WINDOW(w->priv.window), FALSE);
+      break;
+    default:// for none border
+      gtk_widget_set_size_request(w->priv.window, w->width, w->height);
+      gtk_window_set_resizable(GTK_WINDOW(w->priv.window), FALSE);
+      gtk_window_set_decorated (GTK_WINDOW (w->priv.window), FALSE);      
+      break;
   }
-  gtk_window_set_resizable(GTK_WINDOW(w->priv.window), !!w->resizable);
   gtk_window_set_position(GTK_WINDOW(w->priv.window), GTK_WIN_POS_CENTER);
 
   w->priv.scroller = gtk_scrolled_window_new(NULL, NULL);

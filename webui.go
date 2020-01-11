@@ -41,13 +41,13 @@ static inline void CgoWebUiFree(void *w) {
 	free(w);
 }
 
-static inline void *CgoWebUiCreate(int width, int height, char *title, char *url, int resizable, int debug) {
+static inline void *CgoWebUiCreate(int width, int height, char *title, char *url, int border, int debug) {
 	struct webui *w = (struct webui *) calloc(1, sizeof(*w));
 	w->width = width;
 	w->height = height;
 	w->title = title;
 	w->url = url;
-	w->resizable = resizable;
+	w->border = border;
 	w->debug = debug;
 	w->external_invoke_cb = (webui_external_invoke_cb_t) _WebUiExternalInvokeCallback;
 	if (webui_init(w) != 0) {
@@ -118,6 +118,12 @@ import (
 	"unsafe"
 )
 
+const (
+	WEBUI_BORDER_NONE    = 2
+	WEBUI_BORDER_DIALOG  = 1
+	WEBUI_BORDER_SIZABLE = 0
+)
+
 func init() {
 	// Ensure that main.main is called from the main thread
 	runtime.LockOSThread()
@@ -131,17 +137,22 @@ func init() {
 // URL must be provided and can user either a http or https protocol, or be a
 // local file:// URL. On some platforms "data:" URLs are also supported
 // (Linux/MacOS).
-func Open(title, url string, w, h int, resizable bool) error {
+func Open(title, url string, w, h int, border int) error {
 	titleStr := C.CString(title)
 	defer C.free(unsafe.Pointer(titleStr))
 	urlStr := C.CString(url)
 	defer C.free(unsafe.Pointer(urlStr))
-	resize := C.int(0)
-	if resizable {
-		resize = C.int(1)
+	bord := C.int(0)
+	switch border {
+	case WEBUI_BORDER_NONE:
+		bord = C.int(0)
+	case WEBUI_BORDER_DIALOG:
+		bord = C.int(1)
+	case WEBUI_BORDER_SIZABLE:
+		bord = C.int(2)
 	}
 
-	r := C.webui(titleStr, urlStr, C.int(w), C.int(h), resize)
+	r := C.webui(titleStr, urlStr, C.int(w), C.int(h), bord)
 	if r != 0 {
 		return errors.New("failed to create webui")
 	}
@@ -183,7 +194,7 @@ type Settings struct {
 	// Window height in pixels
 	Height int
 	// Allows/disallows window resizing
-	Resizable bool
+	Border int
 	// Enable debugging tools (Linux/BSD/MacOS, on Windows use Firebug)
 	Debug bool
 	// A callback that is executed when JavaScript calls "window.external.invoke()"
@@ -298,7 +309,7 @@ func New(settings Settings) WebUI {
 	w := &webui{}
 	w.w = C.CgoWebUiCreate(C.int(settings.Width), C.int(settings.Height),
 		C.CString(settings.Title), C.CString(settings.URL),
-		C.int(boolToInt(settings.Resizable)), C.int(boolToInt(settings.Debug)))
+		C.int(settings.Border), C.int(boolToInt(settings.Debug)))
 	m.Lock()
 	if settings.ExternalInvokeCallback != nil {
 		cbs[w] = settings.ExternalInvokeCallback

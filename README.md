@@ -34,7 +34,7 @@ import "github.com/srfirouzi/webui"
 func main() {
 	// Open wikipedia in a 800x600 resizable window
 	webui.Open("Minimal webui example",
-		"https://en.m.wikipedia.org/wiki/Main_Page", 800, 600, true)
+		"https://en.m.wikipedia.org/wiki/Main_Page", 800, 600, webui.WEBUI_BORDER_SIZABLE)
 }
 ```
 
@@ -73,7 +73,7 @@ go func() {
  	// Set up your http server here
 	log.Fatal(http.Serve(ln, nil))
 }()
-webui.Open("Hello", "http://"+ln.Addr().String(), 400, 300, false)
+webui.Open("Hello", "http://"+ln.Addr().String(), 400, 300, webui.WEBUI_BORDER_DIALOG)
 ```
 
 Injecting the content via JS bindings is a bit more complicated, but feels more solid and does not expose any additional open TCP ports.
@@ -83,7 +83,8 @@ Leave `webui.Settings.URL` empty to start with bare minimal HTML5. It will open 
 ```go
 const myHTML = `<!doctype html><html>....</html>`
 w := webui.New(webui.Settings{
-	URL: `data:text/html,` + url.PathEscape(myHTML),
+  URL: `data:text/html,` + url.PathEscape(myHTML),
+  Border:WEBUI_BORDER_SIZABLE,
 })
 ```
 
@@ -148,7 +149,7 @@ Lite is still available and just works.
 
 On Linux you get a standalone executable. It will depend on GTK3 and GtkWebkit2, so if you distribute your app in DEB or RPM format include those dependencies. An application icon can be specified by providing a `.desktop` file.
 
-On Windows you probably would like to have a custom icon for your executable. It can be done by providing a resource file, compiling it and linking with it. Typically, `windres` utility is used to compile resources.
+On Windows you probably would like to have a custom icon for your executable. It can be done by providing a resource file, compiling it and linking with it,icon by id 100 in resource if exist used for window icon, by [rsrc](https://github.com/srfirouzi/rsrc) can make this elements
 
 You may find some example build scripts for all three platforms [here](https://github.com/naivesound/glitch/tree/master/dist).
 
@@ -175,8 +176,14 @@ int WINAPI WinMain(HINSTANCE hInt, HINSTANCE hPrevInst, LPSTR lpCmdLine,
 int main() {
 #endif
   /* Open wikipedia in a 800x600 resizable window */
+  /*
+  border can set this value
+  WEBUI_BORDER_NONE=0,
+  WEBUI_BORDER_DIALOG=1,
+  WEBUI_BORDER_SIZABLE=2
+  */
   webui("Minimal webui example",
-	  "https://en.m.wikipedia.org/wiki/Main_Page", 800, 600, 1);
+	  "https://en.m.wikipedia.org/wiki/Main_Page", 800, 600, WEBUI_BORDER_SIZABLE);
   return 0;
 }
 ```
@@ -196,7 +203,7 @@ $ cc main.c -lole32 -lcomctl32 -loleaut32 -luuid -mwindows -o webui-example.exe
 For the most simple use cases there is only one function:
 
 ```c
-int webui(const char *title, const char *url, int width, int height, int resizable);
+int webui(const char *title, const char *url, int width, int height, int border);
 ```
 
 The following URL schemes are supported:
@@ -219,7 +226,7 @@ If you want to have more control over the app lifecycle you can use the followin
       .width = w,
       .height = h,
       .debug = debug,
-      .resizable = resizable,
+      .border = border,
   };
   /* Create webui window using the provided options */
   webui_init(&webui);

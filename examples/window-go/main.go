@@ -119,7 +119,6 @@ func main() {
 		Width:                  windowWidth,
 		Height:                 windowHeight,
 		Title:                  "Simple window demo",
-		Resizable:              true,
 		URL:                    url,
 		ExternalInvokeCallback: handleRPC,
 	})

@@ -33,13 +33,18 @@ struct webui;
 
 typedef void (*webui_external_invoke_cb_t)(struct webui *w,
                                              const char *arg);
+enum webui_border_type{
+  WEBUI_BORDER_NONE=2,
+  WEBUI_BORDER_DIALOG=1,
+  WEBUI_BORDER_SIZABLE=0
+};
 
 struct webui {
   const char *url;
   const char *title;
   int width;
   int height;
-  int resizable;
+  int border;
   int debug;
   webui_external_invoke_cb_t external_invoke_cb;
   struct webui_priv priv;
@@ -91,7 +96,7 @@ static const char *webui_check_url(const char *url) {
 }
 
 WEBUI_API int webui(const char *title, const char *url, int width,
-                        int height, int resizable);
+                        int height, int border);
 
 WEBUI_API int webui_init(struct webui *w);
 WEBUI_API int webui_loop(struct webui *w, int blocking);
@@ -114,14 +119,14 @@ WEBUI_API void webui_print_log(const char *s);
 
 
 WEBUI_API int webui(const char *title, const char *url, int width,
-                        int height, int resizable) {
+                        int height, int border) {
   struct webui webui;
   memset(&webui, 0, sizeof(webui));
   webui.title = title;
   webui.url = url;
   webui.width = width;
   webui.height = height;
-  webui.resizable = resizable;
+  webui.border = border;
   int r = webui_init(&webui);
   if (r != 0) {
     return r;
@@ -887,11 +892,18 @@ static int DisplayHTMLPage(struct webui *w) {
 
 static LRESULT CALLBACK wndproc(HWND hwnd, UINT uMsg, WPARAM wParam,
                                 LPARAM lParam) {
+  HICON hIcon;
   struct webui *w = (struct webui *)GetWindowLongPtr(hwnd, GWLP_USERDATA);
   switch (uMsg) {
   case WM_CREATE:
     w = (struct webui *)((CREATESTRUCT *)lParam)->lpCreateParams;
     w->priv.hwnd = hwnd;
+    /*setIcon on resource by id =100 if exist*/
+    hIcon = LoadIcon (((LPCREATESTRUCT)lParam)->hInstance, MAKEINTRESOURCE (100));
+    if(hIcon != 0){
+      SendMessage (hwnd, WM_SETICON, ICON_BIG, (LPARAM)hIcon);
+    }
+    
     return EmbedBrowserObject(w);
   case WM_DESTROY:
     UnEmbedBrowserObject(w);
@@ -971,11 +983,18 @@ WEBUI_API int webui_init(struct webui *w) {
   wc.lpfnWndProc = wndproc;
   wc.lpszClassName = classname;
   RegisterClassEx(&wc);
-
-  style = WS_OVERLAPPEDWINDOW;
-  if (!w->resizable) {
-    style = WS_OVERLAPPED | WS_CAPTION | WS_MINIMIZEBOX | WS_SYSMENU;
+  switch (w->border){
+    case WEBUI_BORDER_SIZABLE:
+      style = WS_OVERLAPPEDWINDOW;
+      break;
+    case WEBUI_BORDER_DIALOG:
+      style = WS_OVERLAPPED | WS_CAPTION  | WS_SYSMENU;
+      break;
+    default:// for none border
+      style = WS_POPUPWINDOW  ;
+      break;
   }
+  
 
   rect.left = 0;
   rect.top = 0;
