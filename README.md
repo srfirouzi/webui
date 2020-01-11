@@ -148,20 +148,6 @@ Lite is still available and just works.
 
 On Linux you get a standalone executable. It will depend on GTK3 and GtkWebkit2, so if you distribute your app in DEB or RPM format include those dependencies. An application icon can be specified by providing a `.desktop` file.
 
-On MacOS you are likely to ship an app bundle. Make the following directory structure and just zip it:
-
-```
-example.app
-└── Contents
-    ├── Info.plist
-    ├── MacOS
-    |   └── example
-    └── Resources
-        └── example.icns
-```
-
-Here, `Info.plist` is a [property list file](https://developer.apple.com/library/content/documentation/General/Reference/InfoPlistKeyReference/Articles/AboutInformationPropertyListFiles.html) and `*.icns` is a special icon format. You may convert PNG to icns [online](https://iconverticons.com/online/).
-
 On Windows you probably would like to have a custom icon for your executable. It can be done by providing a resource file, compiling it and linking with it. Typically, `windres` utility is used to compile resources.
 
 You may find some example build scripts for all three platforms [here](https://github.com/naivesound/glitch/tree/master/dist).
@@ -291,6 +277,26 @@ webui_dispatch(w, render, some_arg);
 
 You may find some C examples in this repo that demonstrate the API above.
 
+## cross compile
+
+cross compile need active cgo and installed cross compile tools for c language.
+
+### cross compile on linux for windows
+
+first install mingw
+```bash
+#ubuntu
+sudo apt install binutils-mingw-w64
+```
+then set envierment elements to use by go compiler 
+
+```bash
+#64bit
+GOOS=windows GOARCH=amd64 CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc go build -ldflags "-H windowsgui"
+
+#32bit
+GOOS=windows GOARCH=386 CGO_ENABLED=1 CC=i686-w64-mingw32-gcc go build -ldflags "-H windowsgui"
+```
 
 ## License
 

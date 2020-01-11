@@ -33,15 +33,15 @@ package webui
 	#include "lib/win.h"
 #endif
 
-extern void _webviewExternalInvokeCallback(void *, void *);
+extern void _WebUiExternalInvokeCallback(void *, void *);
 
-static inline void CgoWebViewFree(void *w) {
+static inline void CgoWebUiFree(void *w) {
 	free((void *)((struct webui *)w)->title);
 	free((void *)((struct webui *)w)->url);
 	free(w);
 }
 
-static inline void *CgoWebViewCreate(int width, int height, char *title, char *url, int resizable, int debug) {
+static inline void *CgoWebUiCreate(int width, int height, char *title, char *url, int resizable, int debug) {
 	struct webui *w = (struct webui *) calloc(1, sizeof(*w));
 	w->width = width;
 	w->height = height;
@@ -49,35 +49,35 @@ static inline void *CgoWebViewCreate(int width, int height, char *title, char *u
 	w->url = url;
 	w->resizable = resizable;
 	w->debug = debug;
-	w->external_invoke_cb = (webui_external_invoke_cb_t) _webviewExternalInvokeCallback;
+	w->external_invoke_cb = (webui_external_invoke_cb_t) _WebUiExternalInvokeCallback;
 	if (webui_init(w) != 0) {
-		CgoWebViewFree(w);
+		CgoWebUiFree(w);
 		return NULL;
 	}
 	return (void *)w;
 }
 
-static inline int CgoWebViewLoop(void *w, int blocking) {
+static inline int CgoWebUiLoop(void *w, int blocking) {
 	return webui_loop((struct webui *)w, blocking);
 }
 
-static inline void CgoWebViewTerminate(void *w) {
+static inline void CgoWebUiTerminate(void *w) {
 	webui_terminate((struct webui *)w);
 }
 
-static inline void CgoWebViewExit(void *w) {
+static inline void CgoWebUiExit(void *w) {
 	webui_exit((struct webui *)w);
 }
 
-static inline void CgoWebViewSetTitle(void *w, char *title) {
+static inline void CgoWebUiSetTitle(void *w, char *title) {
 	webui_set_title((struct webui *)w, title);
 }
 
-static inline void CgoWebViewSetFullscreen(void *w, int fullscreen) {
+static inline void CgoWebUiSetFullscreen(void *w, int fullscreen) {
 	webui_set_fullscreen((struct webui *)w, fullscreen);
 }
 
-static inline void CgoWebViewSetColor(void *w, uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
+static inline void CgoWebUiSetColor(void *w, uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
 	webui_set_color((struct webui *)w, r, g, b, a);
 }
 
@@ -87,19 +87,19 @@ static inline void CgoDialog(void *w, int dlgtype, int flags,
 		(const char*)title, (const char*) arg, res, ressz);
 }
 
-static inline int CgoWebViewEval(void *w, char *js) {
+static inline int CgoWebUiEval(void *w, char *js) {
 	return webui_eval((struct webui *)w, js);
 }
 
-static inline void CgoWebViewInjectCSS(void *w, char *css) {
+static inline void CgoWebUiInjectCSS(void *w, char *css) {
 	webui_inject_css((struct webui *)w, css);
 }
 
-extern void _webviewDispatchGoCallback(void *);
+extern void _WebUiDispatchGoCallback(void *);
 static inline void _webui_dispatch_cb(struct webui *w, void *arg) {
-	_webviewDispatchGoCallback(arg);
+	_WebUiDispatchGoCallback(arg);
 }
-static inline void CgoWebViewDispatch(void *w, uintptr_t arg) {
+static inline void CgoWebUiDispatch(void *w, uintptr_t arg) {
 	webui_dispatch((struct webui *)w, _webui_dispatch_cb, (void *)arg);
 }
 */
@@ -296,7 +296,7 @@ func New(settings Settings) WebUI {
 		settings.Title = "WebUI"
 	}
 	w := &webui{}
-	w.w = C.CgoWebViewCreate(C.int(settings.Width), C.int(settings.Height),
+	w.w = C.CgoWebUiCreate(C.int(settings.Width), C.int(settings.Height),
 		C.CString(settings.Title), C.CString(settings.URL),
 		C.int(boolToInt(settings.Resizable)), C.int(boolToInt(settings.Debug)))
 	m.Lock()
@@ -314,7 +314,7 @@ func (w *webui) Loop(blocking bool) bool {
 	if blocking {
 		block = 1
 	}
-	return C.CgoWebViewLoop(w.w, block) == 0
+	return C.CgoWebUiLoop(w.w, block) == 0
 }
 
 func (w *webui) Run() {
@@ -323,7 +323,7 @@ func (w *webui) Run() {
 }
 
 func (w *webui) Exit() {
-	C.CgoWebViewExit(w.w)
+	C.CgoWebUiExit(w.w)
 }
 
 func (w *webui) Dispatch(f func()) {
@@ -332,21 +332,21 @@ func (w *webui) Dispatch(f func()) {
 	}
 	fns[index] = f
 	m.Unlock()
-	C.CgoWebViewDispatch(w.w, C.uintptr_t(index))
+	C.CgoWebUiDispatch(w.w, C.uintptr_t(index))
 }
 
 func (w *webui) SetTitle(title string) {
 	p := C.CString(title)
 	defer C.free(unsafe.Pointer(p))
-	C.CgoWebViewSetTitle(w.w, p)
+	C.CgoWebUiSetTitle(w.w, p)
 }
 
 func (w *webui) SetColor(r, g, b, a uint8) {
-	C.CgoWebViewSetColor(w.w, C.uint8_t(r), C.uint8_t(g), C.uint8_t(b), C.uint8_t(a))
+	C.CgoWebUiSetColor(w.w, C.uint8_t(r), C.uint8_t(g), C.uint8_t(b), C.uint8_t(a))
 }
 
 func (w *webui) SetFullscreen(fullscreen bool) {
-	C.CgoWebViewSetFullscreen(w.w, C.int(boolToInt(fullscreen)))
+	C.CgoWebUiSetFullscreen(w.w, C.int(boolToInt(fullscreen)))
 }
 
 func (w *webui) Dialog(dlgType DialogType, flags int, title string, arg string) string {
@@ -365,7 +365,7 @@ func (w *webui) Dialog(dlgType DialogType, flags int, title string, arg string) 
 func (w *webui) Eval(js string) error {
 	p := C.CString(js)
 	defer C.free(unsafe.Pointer(p))
-	switch C.CgoWebViewEval(w.w, p) {
+	switch C.CgoWebUiEval(w.w, p) {
 	case -1:
 		return errors.New("evaluation failed")
 	}
@@ -375,15 +375,15 @@ func (w *webui) Eval(js string) error {
 func (w *webui) InjectCSS(css string) {
 	p := C.CString(css)
 	defer C.free(unsafe.Pointer(p))
-	C.CgoWebViewInjectCSS(w.w, p)
+	C.CgoWebUiInjectCSS(w.w, p)
 }
 
 func (w *webui) Terminate() {
-	C.CgoWebViewTerminate(w.w)
+	C.CgoWebUiTerminate(w.w)
 }
 
-//export _webviewDispatchGoCallback
-func _webviewDispatchGoCallback(index unsafe.Pointer) {
+//export _WebUiDispatchGoCallback
+func _WebUiDispatchGoCallback(index unsafe.Pointer) {
 	var f func()
 	m.Lock()
 	f = fns[uintptr(index)]
@@ -392,8 +392,8 @@ func _webviewDispatchGoCallback(index unsafe.Pointer) {
 	f()
 }
 
-//export _webviewExternalInvokeCallback
-func _webviewExternalInvokeCallback(w unsafe.Pointer, data unsafe.Pointer) {
+//export _WebUiExternalInvokeCallback
+func _WebUiExternalInvokeCallback(w unsafe.Pointer, data unsafe.Pointer) {
 	m.Lock()
 	var (
 		cb ExternalInvokeCallbackFunc
