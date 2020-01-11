@@ -174,9 +174,9 @@ int main() {
   /* Open wikipedia in a 800x600 resizable window */
   /*
   border can set this value
-  WEBUI_BORDER_NONE=0,
+  WEBUI_BORDER_NONE=2,
   WEBUI_BORDER_DIALOG=1,
-  WEBUI_BORDER_SIZABLE=2
+  WEBUI_BORDER_SIZABLE=0
   */
   webui("Minimal webui example",
 	  "https://en.m.wikipedia.org/wiki/Main_Page", 800, 600, WEBUI_BORDER_SIZABLE);
