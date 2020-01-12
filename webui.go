@@ -35,6 +35,8 @@ package webui
 
 extern void _WebUiExternalInvokeCallback(void *, void *);
 
+extern int _WebUiCloseCallback(void *);
+
 static inline void CgoWebUiFree(void *w) {
 	free((void *)((struct webui *)w)->title);
 	free((void *)((struct webui *)w)->url);
@@ -50,6 +52,7 @@ static inline void *CgoWebUiCreate(int width, int height, char *title, char *url
 	w->border = border;
 	w->debug = debug;
 	w->external_invoke_cb = (webui_external_invoke_cb_t) _WebUiExternalInvokeCallback;
+	w->close_cb =(webui_close_cb) _WebUiCloseCallback;
 	if (webui_init(w) != 0) {
 		CgoWebUiFree(w);
 		return NULL;
@@ -181,6 +184,7 @@ func Debugf(format string, a ...interface{}) {
 // JavaScript. To pass more complex data serialized JSON or base64 encoded
 // string can be used.
 type ExternalInvokeCallbackFunc func(w WebUI, data string)
+type CloseCallbackFunc func(w WebUI) bool
 
 // Settings is a set of parameters to customize the initial WebUI appearance
 // and behavior. It is passed into the webui.New() constructor.
@@ -199,6 +203,8 @@ type Settings struct {
 	Debug bool
 	// A callback that is executed when JavaScript calls "window.external.invoke()"
 	ExternalInvokeCallback ExternalInvokeCallbackFunc
+	// A callback for windows close event
+	CloseCallback CloseCallbackFunc
 }
 
 // WebUI is an interface that wraps the basic methods for controlling the UI
@@ -277,7 +283,8 @@ var (
 	m     sync.Mutex
 	index uintptr
 	fns   = map[uintptr]func(){}
-	cbs   = map[WebUI]ExternalInvokeCallbackFunc{}
+	cbei  = map[WebUI]ExternalInvokeCallbackFunc{}
+	cbc   = map[WebUI]CloseCallbackFunc{}
 )
 
 type webui struct {
@@ -312,9 +319,14 @@ func New(settings Settings) WebUI {
 		C.int(settings.Border), C.int(boolToInt(settings.Debug)))
 	m.Lock()
 	if settings.ExternalInvokeCallback != nil {
-		cbs[w] = settings.ExternalInvokeCallback
+		cbei[w] = settings.ExternalInvokeCallback
 	} else {
-		cbs[w] = func(w WebUI, data string) {}
+		cbei[w] = func(w WebUI, data string) {}
+	}
+	if settings.CloseCallback != nil {
+		cbc[w] = settings.CloseCallback
+	} else {
+		cbc[w] = func(w WebUI) bool { return true }
 	}
 	m.Unlock()
 	return w
@@ -403,6 +415,25 @@ func _WebUiDispatchGoCallback(index unsafe.Pointer) {
 	f()
 }
 
+//export _WebUiCloseCallback
+func _WebUiCloseCallback(w unsafe.Pointer) C.int {
+	m.Lock()
+	var (
+		cb CloseCallbackFunc
+		wv WebUI
+	)
+	for wv, cb = range cbc {
+		if wv.(*webui).w == w {
+			break
+		}
+	}
+	m.Unlock()
+	if cb(wv) {
+		return C.int(1)
+	}
+	return C.int(0)
+}
+
 //export _WebUiExternalInvokeCallback
 func _WebUiExternalInvokeCallback(w unsafe.Pointer, data unsafe.Pointer) {
 	m.Lock()
@@ -410,7 +441,7 @@ func _WebUiExternalInvokeCallback(w unsafe.Pointer, data unsafe.Pointer) {
 		cb ExternalInvokeCallbackFunc
 		wv WebUI
 	)
-	for wv, cb = range cbs {
+	for wv, cb = range cbei {
 		if wv.(*webui).w == w {
 			break
 		}
@@ -574,8 +605,8 @@ func (w *webui) Bind(name string, v interface{}) (sync func(), err error) {
 	}
 
 	m.Lock()
-	cb := cbs[w]
-	cbs[w] = func(w WebUI, data string) {
+	cb := cbei[w]
+	cbei[w] = func(w WebUI, data string) {
 		if ok := b.Call(data); ok {
 			sync()
 		} else {

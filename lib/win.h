@@ -33,6 +33,8 @@ struct webui;
 
 typedef void (*webui_external_invoke_cb_t)(struct webui *w,
                                              const char *arg);
+typedef int (*webui_close_cb)(struct webui *w);
+
 enum webui_border_type{
   WEBUI_BORDER_NONE=2,
   WEBUI_BORDER_DIALOG=1,
@@ -47,6 +49,7 @@ struct webui {
   int border;
   int debug;
   webui_external_invoke_cb_t external_invoke_cb;
+  webui_close_cb close_cb;
   struct webui_priv priv;
   void *userdata;
 };
@@ -903,8 +906,13 @@ static LRESULT CALLBACK wndproc(HWND hwnd, UINT uMsg, WPARAM wParam,
     if(hIcon != 0){
       SendMessage (hwnd, WM_SETICON, ICON_BIG, (LPARAM)hIcon);
     }
-    
     return EmbedBrowserObject(w);
+  case WM_CLOSE:
+    if(w->close_cb != NULL){
+      if(!w->close_cb(w)){
+        return TRUE;
+      }
+    }
   case WM_DESTROY:
     UnEmbedBrowserObject(w);
     PostQuitMessage(0);

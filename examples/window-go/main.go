@@ -40,6 +40,9 @@ var indexHTML = `
 			Change color
 		</button>
 		<input id="new-color" value="#e91e63" type="color" />
+		<button onclick="external.invoke('winClose');document.getElementById('close').value='closable'">window is closable</button>
+		<button onclick="external.invoke('winUnClose');document.getElementById('close').value='isnt closable'"> window isn't closable</button>
+		<input id="close" value="closable" type="text" />
 	</body>
 </html>
 `
@@ -81,6 +84,10 @@ func handleRPC(w webui.WebUI, data string) {
 		w.Dialog(webui.DialogTypeAlert, webui.DialogFlagWarning, "Hello", "Hello, warning!")
 	case data == "error":
 		w.Dialog(webui.DialogTypeAlert, webui.DialogFlagError, "Hello", "Hello, error!")
+	case data == "winUnClose":
+		canClose = false
+	case data == "winClose":
+		canClose = true
 	case strings.HasPrefix(data, "changeTitle:"):
 		w.SetTitle(strings.TrimPrefix(data, "changeTitle:"))
 	case strings.HasPrefix(data, "changeColor:"):
@@ -113,6 +120,12 @@ func handleRPC(w webui.WebUI, data string) {
 	}
 }
 
+var canClose = true
+
+func wincloseCallback(webui.WebUI) bool {
+	return canClose
+}
+
 func main() {
 	url := startServer()
 	w := webui.New(webui.Settings{
@@ -121,6 +134,7 @@ func main() {
 		Title:                  "Simple window demo",
 		URL:                    url,
 		ExternalInvokeCallback: handleRPC,
+		CloseCallback:          wincloseCallback,
 	})
 	w.SetColor(255, 255, 255, 255)
 	defer w.Exit()

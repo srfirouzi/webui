@@ -27,6 +27,7 @@ struct webui;
 
 typedef void (*webui_external_invoke_cb_t)(struct webui *w,
                                              const char *arg);
+typedef int (*webui_close_cb)(struct webui *w);
 
 enum webui_border_type{
   WEBUI_BORDER_NONE=2,
@@ -42,6 +43,7 @@ struct webui {
   int border;
   int debug;
   webui_external_invoke_cb_t external_invoke_cb;
+  webui_close_cb close_cb;
   struct webui_priv priv;
   void *userdata;
 };
@@ -213,6 +215,18 @@ static void webui_destroy_cb(GtkWidget *widget, gpointer arg) {
   webui_terminate(w);
 }
 
+static gboolean webui_delete_event_cb(GtkWidget *widget,GdkEvent  *event, gpointer arg) {
+  (void)widget;
+  struct webui *w = (struct webui *)arg;
+  if(w->close_cb!=NULL){
+    int result=w->close_cb(w);
+    if(result==0){
+      return true;
+    }
+  }
+  return false;
+}
+
 static gboolean webui_context_menu_cb(WebKitWebView *webui,
                                         GtkWidget *default_menu,
                                         WebKitHitTestResult *hit_test_result,
@@ -289,6 +303,9 @@ WEBUI_API int webui_init(struct webui *w) {
 
   g_signal_connect(G_OBJECT(w->priv.window), "destroy",
                    G_CALLBACK(webui_destroy_cb), w);
+  g_signal_connect(G_OBJECT(w->priv.window), "delete-event",
+                   G_CALLBACK(webui_delete_event_cb), w);
+                   
   return 0;
 }
 

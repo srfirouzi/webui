@@ -7,11 +7,11 @@ this fork from [webview](https://github.com/zserge/webview/)
 
 ## new feature (todo/doing/done)
 
-- [-] different window border
-  - resolve border-none bug in wine on linux
+- [X] different window border
+  - [ ] resolve border-none bug in wine on linux
 - [x] set window icon if exist in resource by ID 100(windows only)
-- [ ] callback for window events
-  - [ ] close
+- [x] callback for window events
+  - [x] close
 - [ ] add min size for window
 - [ ] new design for dialog
   - add filter to open/save file
@@ -134,11 +134,17 @@ This works fairly well across the platforms, see `counter-go` example for more d
 
 You already have seen how to use `w.Eval()` to run JavaScript inside the webui. There is also a way to call Go code from JavaScript.
 
+
 On the low level there is a special callback, `webui.Settings.ExternalInvokeCallback` that receives a string argument. This string can be passed from JavaScript using `window.external.invoke(someString)`.
+
 
 This might seem very inconvenient, and that is why there is a dedicated `webui.Bind()` API call. It binds an existing Go object (struct or struct pointer) and creates/injects JS API for it. Now you can call JS methods and they will result in calling native Go methods. Even more, if you modify the Go object - it can be automatically serialized to JSON and passed to the web UI to keep things in sync.
 
 Please, see `counter-go` example for more details about how to bind Go controllers to the web UI.
+
+## close window callback
+
+other callback `webui.Settings.CloseCallback` for window close button event.if callback return false ,dissolve close window 
 
 ## Debugging and development tips
 
