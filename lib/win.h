@@ -923,13 +923,15 @@ static LRESULT CALLBACK wndproc(HWND hwnd, UINT uMsg, WPARAM wParam,
     PostQuitMessage(0);
     return TRUE;
   case WM_GETMINMAXINFO:
-      if(w != NULL){
-          mmi = (MINMAXINFO*)lParam;
-          mmi->ptMinTrackSize.x=w->minWidth;
-          mmi->ptMinTrackSize.y=w->minHeight;
-      }
+      if(w == NULL)
+        return TRUE;
+      mmi = (MINMAXINFO*)lParam;
+      mmi->ptMinTrackSize.x=w->minWidth;
+      mmi->ptMinTrackSize.y=w->minHeight;
       return TRUE;
   case WM_SIZE: {
+    if(w==NULL)
+      return TRUE;
     IWebBrowser2 *webBrowser2;
     IOleObject *browser = *w->priv.browser;
     if (browser->lpVtbl->QueryInterface(browser, iid_unref(&IID_IWebBrowser2),
@@ -940,6 +942,7 @@ static LRESULT CALLBACK wndproc(HWND hwnd, UINT uMsg, WPARAM wParam,
       webBrowser2->lpVtbl->put_Height(webBrowser2, rect.bottom);
     }
     return TRUE;
+    
   }
   case WM_WEBUI_DISPATCH: {
     webui_dispatch_fn f = (webui_dispatch_fn)wParam;
@@ -1011,7 +1014,7 @@ WEBUI_API int webui_init(struct webui *w) {
       style = WS_OVERLAPPED | WS_CAPTION  | WS_SYSMENU;
       break;
     default:// for none border
-      style = WS_POPUPWINDOW  ;
+      style = WS_POPUP  ;
       break;
   }
   

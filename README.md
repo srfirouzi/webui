@@ -7,13 +7,13 @@ this fork from [webview](https://github.com/zserge/webview/)
 
 ## new feature (todo/doing/done)
 
+- [ ] write api document for c / golang
 - [X] different window border
-  - [ ] resolve border-none bug in wine on linux
 - [x] set window icon if exist in resource by ID 100(windows only)
 - [x] callback for window events
   - [x] close
 - [x] add min size for window
-  - [ ] resolve bug in wine on linux
+  - [ ] resolve problem in wine on linux
 - [ ] new design for dialog
   - add filter to open/save file
   - add new method for open dialog
