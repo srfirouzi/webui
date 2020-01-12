@@ -5,6 +5,22 @@
 A tiny cross-platform webui library for C/Golang to build modern cross-platform GUIs
 this fork from [webview](https://github.com/zserge/webview/)
 
+## new feature (todo/doing/done)
+
+- [-] different window border
+  - resolve border-none bug in wine on linux
+- [x] set window icon if exist in resource by ID 100(windows only)
+- [ ] callback for window events
+  - [ ] close
+- [ ] add min size for window
+- [ ] new design for dialog
+  - add filter to open/save file
+  - add new method for open dialog
+  - multi button dialog box and return result
+  - add color selector dialog (ie11 don't support color input on html)
+
+ 
+
 
 It supports two-way JavaScript bindings (to call JavaScript from C/Go and to call C/Go from JavaScript).
 
