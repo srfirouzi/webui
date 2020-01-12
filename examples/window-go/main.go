@@ -136,6 +136,7 @@ func main() {
 		ExternalInvokeCallback: handleRPC,
 		CloseCallback:          wincloseCallback,
 	})
+	w.SetMinSize(300, 300)
 	w.SetColor(255, 255, 255, 255)
 	defer w.Exit()
 	w.Run()

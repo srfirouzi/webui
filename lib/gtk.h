@@ -40,6 +40,8 @@ struct webui {
   const char *title;
   int width;
   int height;
+  int minWidth;
+  int minHeight;
   int border;
   int debug;
   webui_external_invoke_cb_t external_invoke_cb;
@@ -113,7 +115,7 @@ WEBUI_API void webui_terminate(struct webui *w);
 WEBUI_API void webui_exit(struct webui *w);
 WEBUI_API void webui_debug(const char *format, ...);
 WEBUI_API void webui_print_log(const char *s);
-
+WEBUI_API void webui_set_min_size(struct webui *w,int width,int height);
 
 WEBUI_API int webui(const char *title, const char *url, int width,
                         int height, int border) {
@@ -265,6 +267,9 @@ WEBUI_API int webui_init(struct webui *w) {
       gtk_window_set_resizable(GTK_WINDOW(w->priv.window), FALSE);
       gtk_window_set_decorated (GTK_WINDOW (w->priv.window), FALSE);      
       break;
+  }
+  if(w->minHeight!=0 || w->minHeight!=0){
+    gtk_widget_set_size_request(GTK_WIDGET(w->priv.window),w->minWidth,w->minHeight);
   }
   gtk_window_set_position(GTK_WINDOW(w->priv.window), GTK_WIN_POS_CENTER);
 
@@ -444,4 +449,10 @@ WEBUI_API void webui_terminate(struct webui *w) {
 WEBUI_API void webui_exit(struct webui *w) { (void)w; }
 WEBUI_API void webui_print_log(const char *s) {
   fprintf(stderr, "%s\n", s);
+}
+
+WEBUI_API void webui_set_min_size(struct webui *w,int width,int height){
+  w->minWidth=width;
+  w->minHeight=height;
+  gtk_widget_set_size_request(GTK_WIDGET(w->priv.window),width,height);
 }

@@ -84,6 +84,10 @@ static inline void CgoWebUiSetColor(void *w, uint8_t r, uint8_t g, uint8_t b, ui
 	webui_set_color((struct webui *)w, r, g, b, a);
 }
 
+static inline void CgoWebUiSetMinSize(void *w,  int width,int height) {
+	webui_set_min_size((struct webui *)w, width, height);
+}
+
 static inline void CgoDialog(void *w, int dlgtype, int flags,
 		char *title, char *arg, char *res, size_t ressz) {
 	webui_dialog(w, dlgtype, flags,
@@ -224,6 +228,9 @@ type WebUI interface {
 	// SetColor() changes window background color. This method must be called from
 	// the main thread only. See Dispatch() for more details.
 	SetColor(r, g, b, a uint8)
+	// SetMinSize() set min size for window
+	// called from the main thread only
+	SetMinSize(width int, height int)
 	// Eval() evaluates an arbitrary JS code inside the webui. This method must
 	// be called from the main thread only. See Dispatch() for more details.
 	Eval(js string) error
@@ -366,6 +373,10 @@ func (w *webui) SetTitle(title string) {
 
 func (w *webui) SetColor(r, g, b, a uint8) {
 	C.CgoWebUiSetColor(w.w, C.uint8_t(r), C.uint8_t(g), C.uint8_t(b), C.uint8_t(a))
+}
+
+func (w *webui) SetMinSize(width int, height int) {
+	C.CgoWebUiSetMinSize(w.w, C.int(width), C.int(height))
 }
 
 func (w *webui) SetFullscreen(fullscreen bool) {

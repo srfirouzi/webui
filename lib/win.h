@@ -46,6 +46,8 @@ struct webui {
   const char *title;
   int width;
   int height;
+  int minWidth;
+  int minHeight;
   int border;
   int debug;
   webui_external_invoke_cb_t external_invoke_cb;
@@ -119,6 +121,7 @@ WEBUI_API void webui_terminate(struct webui *w);
 WEBUI_API void webui_exit(struct webui *w);
 WEBUI_API void webui_debug(const char *format, ...);
 WEBUI_API void webui_print_log(const char *s);
+WEBUI_API void webui_set_min_size(struct webui *w,int width,int height);
 
 
 WEBUI_API int webui(const char *title, const char *url, int width,
@@ -896,6 +899,8 @@ static int DisplayHTMLPage(struct webui *w) {
 static LRESULT CALLBACK wndproc(HWND hwnd, UINT uMsg, WPARAM wParam,
                                 LPARAM lParam) {
   HICON hIcon;
+  MINMAXINFO* mmi;
+  POINT point;
   struct webui *w = (struct webui *)GetWindowLongPtr(hwnd, GWLP_USERDATA);
   switch (uMsg) {
   case WM_CREATE:
@@ -917,6 +922,13 @@ static LRESULT CALLBACK wndproc(HWND hwnd, UINT uMsg, WPARAM wParam,
     UnEmbedBrowserObject(w);
     PostQuitMessage(0);
     return TRUE;
+  case WM_GETMINMAXINFO:
+      if(w != NULL){
+          mmi = (MINMAXINFO*)lParam;
+          mmi->ptMinTrackSize.x=w->minWidth;
+          mmi->ptMinTrackSize.y=w->minHeight;
+      }
+      return TRUE;
   case WM_SIZE: {
     IWebBrowser2 *webBrowser2;
     IOleObject *browser = *w->priv.browser;
@@ -1376,3 +1388,8 @@ WEBUI_API void webui_exit(struct webui *w) {
 }
 
 WEBUI_API void webui_print_log(const char *s) { OutputDebugString(s); }
+
+WEBUI_API void webui_set_min_size(struct webui *w,int width,int height){
+  w->minWidth=width;
+  w->minHeight=height;
+}

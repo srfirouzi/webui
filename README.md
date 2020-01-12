@@ -12,7 +12,8 @@ this fork from [webview](https://github.com/zserge/webview/)
 - [x] set window icon if exist in resource by ID 100(windows only)
 - [x] callback for window events
   - [x] close
-- [ ] add min size for window
+- [x] add min size for window
+  - [ ] resolve bug in wine on linux
 - [ ] new design for dialog
   - add filter to open/save file
   - add new method for open dialog
@@ -255,6 +256,9 @@ If you want to have more control over the app lifecycle you can use the followin
 
   /* To change window title later: */
   webui_set_title(&webui, "New title");
+
+  /* to set min size for window: */
+  webui_set_min_size(&webui,100,100);
 
   /* To terminate the webui main loop: */
   webui_terminate(&webui);
