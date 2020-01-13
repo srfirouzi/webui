@@ -61,6 +61,28 @@ enum webui_dialog_type {
   WEBUI_DIALOG_TYPE_SAVE = 1,
   WEBUI_DIALOG_TYPE_ALERT = 2
 };
+#define WEBUI_MSG_ICON_MASK (3 << 0)
+#define WEBUI_MSG_BUTTON_MASK (3 << 2)
+enum webui_msg_type{
+  /* 2 bit for msg type*/
+  WEBUI_MSG_MSG=0,
+  WEBUI_MSG_INFO=1,
+  WEBUI_MSG_WARNING=2,
+  WEBUI_MSG_ERROR=3,
+  /*other bit for button*/
+  WEBUI_MSG_OK=0,
+  WEBUI_MSG_OK_CANCEL=4,
+  WEBUI_MSG_YES_NO=8,
+  WEBUI_MSG_YES_NO_CANCEL=12
+  /* other buttons model*/
+};
+
+enum webui_response_type{
+  WEBUI_RESPONSE_OK=0,
+  WEBUI_RESPONSE_CANCEL=1,
+  WEBUI_RESPONSE_YES=2,
+  WEBUI_RESPONSE_NO=3
+};
 
 #define WEBUI_DIALOG_FLAG_FILE (0 << 0)
 #define WEBUI_DIALOG_FLAG_DIRECTORY (1 << 0)
@@ -122,6 +144,7 @@ WEBUI_API void webui_exit(struct webui *w);
 WEBUI_API void webui_debug(const char *format, ...);
 WEBUI_API void webui_print_log(const char *s);
 WEBUI_API void webui_set_min_size(struct webui *w,int width,int height);
+WEBUI_API int webui_msg(struct webui *w,enum webui_msg_type flag,const char *title,const char *msg);
 
 
 WEBUI_API int webui(const char *title, const char *url, int width,
@@ -1295,6 +1318,48 @@ DEFINE_GUID(IID_IFileOpenDialog, 0xd57c7288, 0xd4ad, 0x4768, 0xbe, 0x02, 0x9d,
 DEFINE_GUID(IID_IFileSaveDialog, 0x84bccd23, 0x5fde, 0x4cdb, 0xae, 0xa4, 0xaf,
             0x64, 0xb8, 0x3d, 0x78, 0xab);
 #endif
+
+WEBUI_API int webui_msg(struct webui *w,enum webui_msg_type flag,const char *title,const char *msg){
+  UINT type = 0;
+  switch (flag & WEBUI_MSG_ICON_MASK){
+  case WEBUI_MSG_INFO:
+    type=MB_ICONINFORMATION;
+    break;
+  case WEBUI_MSG_WARNING:
+    type=MB_ICONWARNING;
+    break;
+  case WEBUI_MSG_ERROR:
+    type=MB_ICONERROR;
+    break;
+  default://WEBUI_MSG_MSG = 0
+    break;
+  }
+  switch (flag & WEBUI_MSG_BUTTON_MASK){
+  case WEBUI_MSG_OK_CANCEL:
+    type|=MB_OKCANCEL;
+    break;
+  case WEBUI_MSG_YES_NO:
+    type|=MB_YESNO;
+    break;
+  case WEBUI_MSG_YES_NO_CANCEL:
+    type|=MB_YESNOCANCEL;
+    break;
+  default://WEBUI_MSG_MSG = 0
+    type|=MB_OK;
+    break;
+  }
+  int res=MessageBox(w->priv.hwnd, msg, title, type); 
+  switch (res){
+  case IDCANCEL:
+    return WEBUI_RESPONSE_CANCEL;
+  case IDYES:
+    return WEBUI_RESPONSE_YES;
+  case IDNO:
+    return WEBUI_RESPONSE_NO;
+  } 
+  // IDOK
+  return WEBUI_RESPONSE_OK;
+}
 
 WEBUI_API void webui_dialog(struct webui *w,
                                 enum webui_dialog_type dlgtype, int flags,

@@ -55,6 +55,27 @@ enum webui_dialog_type {
   WEBUI_DIALOG_TYPE_SAVE = 1,
   WEBUI_DIALOG_TYPE_ALERT = 2
 };
+#define WEBUI_MSG_ICON_MASK (3 << 0)
+#define WEBUI_MSG_BUTTON_MASK (3 << 2)
+enum webui_msg_type{
+  /* 2 bit for msg type*/
+  WEBUI_MSG_MSG=0,
+  WEBUI_MSG_INFO=1,
+  WEBUI_MSG_WARNING=2,
+  WEBUI_MSG_ERROR=3,
+  /*other bit for button*/
+  WEBUI_MSG_OK=0,
+  WEBUI_MSG_OK_CANCEL=4,
+  WEBUI_MSG_YES_NO=8,
+  WEBUI_MSG_YES_NO_CANCEL=12
+  /* other buttons model*/
+};
+enum webui_response_type{
+  WEBUI_RESPONSE_OK=0,
+  WEBUI_RESPONSE_CANCEL=1,
+  WEBUI_RESPONSE_YES=2,
+  WEBUI_RESPONSE_NO=3
+};
 
 #define WEBUI_DIALOG_FLAG_FILE (0 << 0)
 #define WEBUI_DIALOG_FLAG_DIRECTORY (1 << 0)
@@ -116,6 +137,8 @@ WEBUI_API void webui_exit(struct webui *w);
 WEBUI_API void webui_debug(const char *format, ...);
 WEBUI_API void webui_print_log(const char *s);
 WEBUI_API void webui_set_min_size(struct webui *w,int width,int height);
+WEBUI_API int webui_msg(struct webui *w,enum webui_msg_type flag,const char *title,const char *msg);
+
 
 WEBUI_API int webui(const char *title, const char *url, int width,
                         int height, int border) {
@@ -336,6 +359,48 @@ WEBUI_API void webui_set_color(struct webui *w, uint8_t r, uint8_t g,
   GdkRGBA color = {r / 255.0, g / 255.0, b / 255.0, a / 255.0};
   webkit_web_view_set_background_color(WEBKIT_WEB_VIEW(w->priv.webui),
                                        &color);
+}
+WEBUI_API int webui_msg(struct webui *w,enum webui_msg_type flag,const char *title,const char *msg){
+  GtkWidget *dlg;
+  GtkMessageType type = GTK_MESSAGE_OTHER;
+  switch (flag & WEBUI_MSG_ICON_MASK){
+  case WEBUI_MSG_INFO:
+    type=GTK_MESSAGE_INFO;
+    break;
+  case WEBUI_MSG_WARNING:
+    type=GTK_MESSAGE_WARNING;
+    break;
+  case WEBUI_MSG_ERROR:
+    type=GTK_MESSAGE_ERROR;
+    break;
+  default://WEBUI_MSG_MSG = 0
+    break;
+  }
+  dlg = gtk_message_dialog_new(GTK_WINDOW(w->priv.window), GTK_DIALOG_MODAL,
+                                 type, GTK_BUTTONS_NONE, "%s", title);
+  gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(dlg), "%s",msg);
+  switch (flag & WEBUI_MSG_BUTTON_MASK){
+  case WEBUI_MSG_OK_CANCEL:
+    gtk_dialog_add_button(GTK_DIALOG(dlg),"Ok",WEBUI_RESPONSE_OK);
+    gtk_dialog_add_button(GTK_DIALOG(dlg),"Cancel",WEBUI_RESPONSE_CANCEL);
+    break;
+  case WEBUI_MSG_YES_NO:
+    gtk_dialog_add_button(GTK_DIALOG(dlg),"Yes",WEBUI_RESPONSE_YES);
+    gtk_dialog_add_button(GTK_DIALOG(dlg),"No",WEBUI_RESPONSE_NO);
+    break;
+  case WEBUI_MSG_YES_NO_CANCEL:
+    gtk_dialog_add_button(GTK_DIALOG(dlg),"Yes",WEBUI_RESPONSE_YES);
+    gtk_dialog_add_button(GTK_DIALOG(dlg),"No",WEBUI_RESPONSE_NO);
+    gtk_dialog_add_button(GTK_DIALOG(dlg),"Cancel",WEBUI_RESPONSE_CANCEL);
+    break;
+  default://WEBUI_MSG_MSG = 0
+    gtk_dialog_add_button(GTK_DIALOG(dlg),"Ok",WEBUI_RESPONSE_OK);
+    break;
+  }
+  int res=gtk_dialog_run(GTK_DIALOG(dlg));
+  
+  gtk_widget_destroy(dlg);
+  return res;
 }
 
 WEBUI_API void webui_dialog(struct webui *w,

@@ -87,6 +87,9 @@ static inline void CgoWebUiSetColor(void *w, uint8_t r, uint8_t g, uint8_t b, ui
 static inline void CgoWebUiSetMinSize(void *w,  int width,int height) {
 	webui_set_min_size((struct webui *)w, width, height);
 }
+static inline int CgoWebUiMsg(void *w, int flags,char *title, char *msg){
+	return webui_msg((struct webui *)w,flags, title,msg);
+}
 
 static inline void CgoDialog(void *w, int dlgtype, int flags,
 		char *title, char *arg, char *res, size_t ressz) {
@@ -129,6 +132,24 @@ const (
 	WEBUI_BORDER_NONE    = 2
 	WEBUI_BORDER_DIALOG  = 1
 	WEBUI_BORDER_SIZABLE = 0
+)
+
+const (
+	/* show flag*/
+	WEBUI_MSG_MSG     = 0
+	WEBUI_MSG_INFO    = 1
+	WEBUI_MSG_WARNING = 2
+	WEBUI_MSG_ERROR   = 3
+	/*button flags*/
+	WEBUI_MSG_OK            = 0
+	WEBUI_MSG_OK_CANCEL     = 4
+	WEBUI_MSG_YES_NO        = 8
+	WEBUI_MSG_YES_NO_CANCEL = 12
+	/* msg response */
+	WEBUI_RESPONSE_OK     = 0
+	WEBUI_RESPONSE_CANCEL = 1
+	WEBUI_RESPONSE_YES    = 2
+	WEBUI_RESPONSE_NO     = 3
 )
 
 func init() {
@@ -238,6 +259,8 @@ type WebUI interface {
 	// method must be called from the main thread only. See Dispatch() for more
 	// details.
 	InjectCSS(css string)
+
+	Msg(icon int, button int, title string, msg string) int
 	// Dialog() opens a system dialog of the given type and title. String
 	// argument can be provided for certain dialogs, such as alert boxes. For
 	// alert boxes argument is a message inside the dialog box.
@@ -383,6 +406,14 @@ func (w *webui) SetFullscreen(fullscreen bool) {
 	C.CgoWebUiSetFullscreen(w.w, C.int(boolToInt(fullscreen)))
 }
 
+func (w *webui) Msg(icon int, button int, title string, msg string) int {
+	titlePtr := C.CString(title)
+	defer C.free(unsafe.Pointer(titlePtr))
+	msgPtr := C.CString(msg)
+	defer C.free(unsafe.Pointer(msgPtr))
+	res := C.CgoWebUiMsg(w.w, C.int(icon+button), titlePtr, msgPtr)
+	return int(res)
+}
 func (w *webui) Dialog(dlgType DialogType, flags int, title string, arg string) string {
 	const maxPath = 4096
 	titlePtr := C.CString(title)
