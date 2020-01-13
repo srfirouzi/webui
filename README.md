@@ -14,7 +14,7 @@ this fork from [webview](https://github.com/zserge/webview/)
   - [x] close
 - [x] add min size for window
   - [ ] resolve problem in wine on linux
-- [ ] msg for dialog by multi button
+- [x] msg for dialog by multi button
 - [ ] file save/open/directory dialog
 - [ ] add color selector dialog (ie11 don't support color input on html)
 - [ ] utf8 support(change only win.h)
