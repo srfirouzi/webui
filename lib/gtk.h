@@ -77,6 +77,13 @@ enum webui_response_type{
   WEBUI_RESPONSE_NO=3
 };
 
+enum webui_file_type{
+  WEBUI_FILE_OPEN=0,
+  WEBUI_FILE_SAVE=1,
+  WEBUI_FILE_DIRECTORY=2
+};
+
+
 #define WEBUI_DIALOG_FLAG_FILE (0 << 0)
 #define WEBUI_DIALOG_FLAG_DIRECTORY (1 << 0)
 
@@ -138,6 +145,7 @@ WEBUI_API void webui_debug(const char *format, ...);
 WEBUI_API void webui_print_log(const char *s);
 WEBUI_API void webui_set_min_size(struct webui *w,int width,int height);
 WEBUI_API int webui_msg(struct webui *w,enum webui_msg_type flag,const char *title,const char *msg);
+WEBUI_API void webui_file(struct webui *w,enum webui_file_type flag,const char *filter,char *result, size_t resultsz);
 
 
 WEBUI_API int webui(const char *title, const char *url, int width,
@@ -402,6 +410,72 @@ WEBUI_API int webui_msg(struct webui *w,enum webui_msg_type flag,const char *tit
   gtk_widget_destroy(dlg);
   return res;
 }
+
+WEBUI_API void webui_file(struct webui *w,enum webui_file_type flag,const char *filter,char *result, size_t resultsz){
+  GtkWidget *dlg;
+  GtkFileFilter *filt;
+  char type[10]={0};
+  size_t i,j,l;
+  if (result != NULL) {
+    result[0] = '\0';
+  }
+  
+  switch (flag){
+  case WEBUI_FILE_OPEN:
+    dlg = gtk_file_chooser_dialog_new("Open", GTK_WINDOW(w->priv.window),
+        GTK_FILE_CHOOSER_ACTION_OPEN,"_Cancel", GTK_RESPONSE_CANCEL,"_Open",GTK_RESPONSE_ACCEPT, NULL);
+    break;
+  case WEBUI_FILE_SAVE:
+    dlg = gtk_file_chooser_dialog_new("Save", GTK_WINDOW(w->priv.window),
+    GTK_FILE_CHOOSER_ACTION_SAVE,"_Cancel", GTK_RESPONSE_CANCEL,"_Save",GTK_RESPONSE_ACCEPT, NULL);
+    break;
+  default://directory
+    dlg = gtk_file_chooser_dialog_new("Select Directory", GTK_WINDOW(w->priv.window),
+    GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER,"_Cancel", GTK_RESPONSE_CANCEL,"_Open",GTK_RESPONSE_ACCEPT, NULL);
+    break;
+  }
+    if(flag!=WEBUI_FILE_DIRECTORY){
+      l=strlen(filter);
+      if(l!=0){
+        j=0;
+        filt = gtk_file_filter_new();
+        gtk_file_filter_set_name (filt,filter);
+        for ( i = 0; i < l; i++){
+          if(filter[i]==';'){
+            type[j]='\0';
+            gtk_file_filter_add_pattern(filt, type);  
+            j=0;
+          }else{
+            type[j]=filter[i];
+            j++;
+            if(i==(l-1)){
+              type[j]='\0';
+              gtk_file_filter_add_pattern(filt, type); 
+            }
+          }
+        }
+        gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dlg), filt);
+      }
+      
+      filt = gtk_file_filter_new();
+      gtk_file_filter_set_name (filt,"all");
+      gtk_file_filter_add_pattern(filt, "*.*"); 
+      gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dlg), filt);
+    }
+    gtk_file_chooser_set_local_only(GTK_FILE_CHOOSER(dlg), FALSE);
+    gtk_file_chooser_set_select_multiple(GTK_FILE_CHOOSER(dlg), FALSE);
+    gtk_file_chooser_set_show_hidden(GTK_FILE_CHOOSER(dlg), TRUE);
+    gtk_file_chooser_set_do_overwrite_confirmation(GTK_FILE_CHOOSER(dlg), TRUE);
+    gtk_file_chooser_set_create_folders(GTK_FILE_CHOOSER(dlg), TRUE);
+    gint response = gtk_dialog_run(GTK_DIALOG(dlg));
+    if (response == GTK_RESPONSE_ACCEPT) {
+      gchar *filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dlg));
+      g_strlcpy(result, filename, resultsz);
+      g_free(filename);
+    }
+    gtk_widget_destroy(dlg);
+
+} 
 
 WEBUI_API void webui_dialog(struct webui *w,
                                 enum webui_dialog_type dlgtype, int flags,

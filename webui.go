@@ -91,6 +91,10 @@ static inline int CgoWebUiMsg(void *w, int flags,char *title, char *msg){
 	return webui_msg((struct webui *)w,flags, title,msg);
 }
 
+static inline void CgoWebUiFile(void *w, int type,char *filter, char *res, size_t ressz) {
+	webui_file(w, type,(const char*) filter, res, ressz);
+}
+
 static inline void CgoDialog(void *w, int dlgtype, int flags,
 		char *title, char *arg, char *res, size_t ressz) {
 	webui_dialog(w, dlgtype, flags,
@@ -150,6 +154,12 @@ const (
 	WEBUI_RESPONSE_CANCEL = 1
 	WEBUI_RESPONSE_YES    = 2
 	WEBUI_RESPONSE_NO     = 3
+)
+
+const (
+	WEBUI_FILE_OPEN      = 0
+	WEBUI_FILE_SAVE      = 1
+	WEBUI_FILE_DIRECTORY = 2
 )
 
 func init() {
@@ -261,6 +271,7 @@ type WebUI interface {
 	InjectCSS(css string)
 
 	Msg(icon int, button int, title string, msg string) int
+	File(Type int, filter string) string
 	// Dialog() opens a system dialog of the given type and title. String
 	// argument can be provided for certain dialogs, such as alert boxes. For
 	// alert boxes argument is a message inside the dialog box.
@@ -411,9 +422,20 @@ func (w *webui) Msg(icon int, button int, title string, msg string) int {
 	defer C.free(unsafe.Pointer(titlePtr))
 	msgPtr := C.CString(msg)
 	defer C.free(unsafe.Pointer(msgPtr))
-	res := C.CgoWebUiMsg(w.w, C.int(icon+button), titlePtr, msgPtr)
+	res := C.CgoWebUiMsg(w.w, C.int(icon|button), titlePtr, msgPtr)
 	return int(res)
 }
+func (w *webui) File(Type int, filter string) string {
+	const maxPath = 4096
+	filterPtr := C.CString(filter)
+	defer C.free(unsafe.Pointer(filterPtr))
+	resultPtr := (*C.char)(C.calloc((C.size_t)(unsafe.Sizeof((*C.char)(nil))), (C.size_t)(maxPath)))
+	defer C.free(unsafe.Pointer(resultPtr))
+	C.CgoWebUiFile(w.w, C.int(Type), filterPtr, resultPtr, C.size_t(maxPath))
+	return C.GoString(resultPtr)
+
+}
+
 func (w *webui) Dialog(dlgType DialogType, flags int, title string, arg string) string {
 	const maxPath = 4096
 	titlePtr := C.CString(title)

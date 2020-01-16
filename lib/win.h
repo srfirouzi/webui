@@ -84,6 +84,12 @@ enum webui_response_type{
   WEBUI_RESPONSE_NO=3
 };
 
+enum webui_file_type{
+  WEBUI_FILE_OPEN=0,
+  WEBUI_FILE_SAVE=1,
+  WEBUI_FILE_DIRECTORY=2
+};
+
 #define WEBUI_DIALOG_FLAG_FILE (0 << 0)
 #define WEBUI_DIALOG_FLAG_DIRECTORY (1 << 0)
 
@@ -145,6 +151,7 @@ WEBUI_API void webui_debug(const char *format, ...);
 WEBUI_API void webui_print_log(const char *s);
 WEBUI_API void webui_set_min_size(struct webui *w,int width,int height);
 WEBUI_API int webui_msg(struct webui *w,enum webui_msg_type flag,const char *title,const char *msg);
+WEBUI_API void webui_file(struct webui *w,enum webui_file_type flag,const char *filter,char *result, size_t resultsz);
 
 
 WEBUI_API int webui(const char *title, const char *url, int width,
@@ -1359,6 +1366,78 @@ WEBUI_API int webui_msg(struct webui *w,enum webui_msg_type flag,const char *tit
   } 
   // IDOK
   return WEBUI_RESPONSE_OK;
+}
+WEBUI_API void webui_file(struct webui *w,enum webui_file_type flag,const char *filter,char *result, size_t resultsz){
+    IFileDialog *dlg = NULL;
+    IShellItem *res = NULL;
+    WCHAR *ws = NULL;
+    char *s = NULL;
+    FILEOPENDIALOGOPTIONS opts, add_opts;
+    if (flag == WEBUI_FILE_OPEN || flag==WEBUI_FILE_DIRECTORY) {
+      if (CoCreateInstance(
+              iid_unref(&CLSID_FileOpenDialog), NULL, CLSCTX_INPROC_SERVER,
+              iid_unref(&IID_IFileOpenDialog), (void **)&dlg) != S_OK) {
+        goto error_dlg;
+      }
+      if (flag ==WEBUI_FILE_DIRECTORY) {
+        add_opts |= FOS_PICKFOLDERS;
+      }
+      add_opts |= FOS_NOCHANGEDIR | FOS_ALLNONSTORAGEITEMS | FOS_NOVALIDATE |
+                  FOS_PATHMUSTEXIST | FOS_FILEMUSTEXIST | FOS_SHAREAWARE |
+                  FOS_NOTESTFILECREATE | FOS_NODEREFERENCELINKS |
+                  FOS_FORCESHOWHIDDEN | FOS_DEFAULTNOMINIMODE;
+    } else {
+      if (CoCreateInstance(
+              iid_unref(&CLSID_FileSaveDialog), NULL, CLSCTX_INPROC_SERVER,
+              iid_unref(&IID_IFileSaveDialog), (void **)&dlg) != S_OK) {
+        goto error_dlg;
+      }
+      add_opts |= FOS_OVERWRITEPROMPT | FOS_NOCHANGEDIR |
+                  FOS_ALLNONSTORAGEITEMS | FOS_NOVALIDATE | FOS_SHAREAWARE |
+                  FOS_NOTESTFILECREATE | FOS_NODEREFERENCELINKS |
+                  FOS_FORCESHOWHIDDEN | FOS_DEFAULTNOMINIMODE;
+    }
+    if (dlg->lpVtbl->GetOptions(dlg, &opts) != S_OK) {
+      goto error_dlg;
+    }
+    opts &= ~FOS_NOREADONLYRETURN;
+    opts |= add_opts;
+    if (dlg->lpVtbl->SetOptions(dlg, opts) != S_OK) {
+      goto error_dlg;
+    }
+    if(flag!=WEBUI_FILE_DIRECTORY && strlen(filter)!=0){
+      COMDLG_FILTERSPEC aFileTypes[] = {
+      { L"", L"" },
+      { L"All files", L"*.*" }
+      };
+      WCHAR *wfilter = webui_to_utf16(filter);
+      aFileTypes[0].pszName=wfilter;
+      aFileTypes[0].pszSpec=wfilter;
+      if(dlg->lpVtbl->SetFileTypes(dlg, 2, aFileTypes )!= S_OK){
+        GlobalFree(wfilter);
+        goto error_dlg;
+      }
+      GlobalFree(wfilter);
+    }
+    if (dlg->lpVtbl->Show(dlg, w->priv.hwnd) != S_OK) {
+      goto error_dlg;
+    }
+    if (dlg->lpVtbl->GetResult(dlg, &res) != S_OK) {
+      goto error_dlg;
+    }
+    if (res->lpVtbl->GetDisplayName(res, SIGDN_FILESYSPATH, &ws) != S_OK) {
+      goto error_result;
+    }
+    s = webui_from_utf16(ws);
+    strncpy(result, s, resultsz);
+    result[resultsz - 1] = '\0';
+    CoTaskMemFree(ws);
+  error_result:
+    res->lpVtbl->Release(res);
+  error_dlg:
+    dlg->lpVtbl->Release(dlg);
+    return;
+
 }
 
 WEBUI_API void webui_dialog(struct webui *w,
