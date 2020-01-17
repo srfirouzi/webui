@@ -1336,7 +1336,11 @@ WEBUI_API int webui_msg(struct webui *w,enum webui_msg_type flag,const char *tit
     type|=MB_OK;
     break;
   }
-  int res=MessageBox(w->priv.hwnd, msg, title, type); 
+  WCHAR *Ltitle=webui_to_utf16(title);
+  WCHAR *Lmsg=webui_to_utf16(msg);
+  int res=MessageBoxW(w->priv.hwnd, Lmsg, Ltitle, type); 
+  GlobalFree(Ltitle);
+  GlobalFree(Lmsg);
   switch (res){
   case IDCANCEL:
     return WEBUI_RESPONSE_CANCEL;

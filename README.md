@@ -327,6 +327,9 @@ GOOS=windows GOARCH=386 CGO_ENABLED=1 CC=i686-w64-mingw32-gcc go build -ldflags 
 ## new feature (todo/doing/done)
 
 - [ ] utf8 support(change only win.h)
+  - [x] msg
+  - [x] file
+  - [ ] window
 
 
 ## License
