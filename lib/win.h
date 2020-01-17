@@ -38,7 +38,7 @@ typedef int (*webui_close_cb)(struct webui *w);
 enum webui_border_type{
   WEBUI_BORDER_NONE=2,
   WEBUI_BORDER_DIALOG=1,
-  WEBUI_BORDER_SIZABLE=0
+  WEBUI_BORDER_RESIZABLE=0
 };
 
 struct webui {
@@ -1018,7 +1018,7 @@ WEBUI_API int webui_init(struct webui *w) {
   wc.lpszClassName = classname;
   RegisterClassEx(&wc);
   switch (w->border){
-    case WEBUI_BORDER_SIZABLE:
+    case WEBUI_BORDER_RESIZABLE:
       style = WS_OVERLAPPEDWINDOW;
       break;
     case WEBUI_BORDER_DIALOG:

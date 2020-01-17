@@ -134,8 +134,8 @@ const (
 	BorderNone WindowBorder = C.WEBUI_BORDER_NONE
 	// BorderDialog is dialog border for window
 	BorderDialog WindowBorder = C.WEBUI_BORDER_DIALOG
-	// BorderSizable is sizable border for window
-	BorderSizable WindowBorder = C.WEBUI_BORDER_SIZABLE
+	// BorderResizable is sizable border for window
+	BorderResizable WindowBorder = C.WEBUI_BORDER_RESIZABLE
 )
 
 // MessageFlag flag for msg function
