@@ -71,19 +71,19 @@ func handleRPC(w webui.WebUI, data string) {
 	case data == "unfullscreen":
 		w.SetFullscreen(false)
 	case data == "open":
-		log.Println("open", w.Dialog(webui.DialogTypeOpen, 0, "Open file", ""))
+		log.Println("open", w.FileOpen("*.jpg;*.png;*.bmp"))
 	case data == "opendir":
-		log.Println("open", w.Dialog(webui.DialogTypeOpen, webui.DialogFlagDirectory, "Open directory", ""))
+		log.Println("open", w.DirectoryOpen())
 	case data == "save":
-		log.Println("save", w.Dialog(webui.DialogTypeSave, 0, "Save file", ""))
+		log.Println("save", w.FileSave("*.txt;*.md"))
 	case data == "message":
-		w.Dialog(webui.DialogTypeAlert, 0, "Hello", "Hello, world!")
+		w.Message("title", "test", webui.MessageMsg)
 	case data == "info":
-		w.Dialog(webui.DialogTypeAlert, webui.DialogFlagInfo, "Hello", "Hello, info!")
+		w.Message("title", "test", webui.MessageInfo|webui.MessageButtonOKCancel)
 	case data == "warning":
-		w.Dialog(webui.DialogTypeAlert, webui.DialogFlagWarning, "Hello", "Hello, warning!")
+		w.Message("title", "test", webui.MessageWarning|webui.MessageButtonYesNo)
 	case data == "error":
-		w.Dialog(webui.DialogTypeAlert, webui.DialogFlagError, "Hello", "Hello, error!")
+		w.Message("title", "test", webui.MessageError|webui.MessageButtonYesNoCancel)
 	case data == "winUnClose":
 		canClose = false
 	case data == "winClose":
