@@ -50,11 +50,6 @@ struct webui {
   void *userdata;
 };
 
-enum webui_dialog_type {
-  WEBUI_DIALOG_TYPE_OPEN = 0,
-  WEBUI_DIALOG_TYPE_SAVE = 1,
-  WEBUI_DIALOG_TYPE_ALERT = 2
-};
 #define WEBUI_MSG_ICON_MASK (3 << 0)
 #define WEBUI_MSG_BUTTON_MASK (3 << 2)
 enum webui_msg_type{
@@ -82,15 +77,6 @@ enum webui_file_type{
   WEBUI_FILE_SAVE=1,
   WEBUI_FILE_DIRECTORY=2
 };
-
-
-#define WEBUI_DIALOG_FLAG_FILE (0 << 0)
-#define WEBUI_DIALOG_FLAG_DIRECTORY (1 << 0)
-
-#define WEBUI_DIALOG_FLAG_INFO (1 << 1)
-#define WEBUI_DIALOG_FLAG_WARNING (2 << 1)
-#define WEBUI_DIALOG_FLAG_ERROR (3 << 1)
-#define WEBUI_DIALOG_FLAG_ALERT_MASK (3 << 1)
 
 typedef void (*webui_dispatch_fn)(struct webui *w, void *arg);
 
@@ -122,23 +108,15 @@ static const char *webui_check_url(const char *url) {
   return url;
 }
 
-WEBUI_API int webui(const char *title, const char *url, int width,
-                        int height, int border);
-
+WEBUI_API int webui(const char *title, const char *url, int width, int height, int border);
 WEBUI_API int webui_init(struct webui *w);
 WEBUI_API int webui_loop(struct webui *w, int blocking);
 WEBUI_API int webui_eval(struct webui *w, const char *js);
 WEBUI_API int webui_inject_css(struct webui *w, const char *css);
 WEBUI_API void webui_set_title(struct webui *w, const char *title);
 WEBUI_API void webui_set_fullscreen(struct webui *w, int fullscreen);
-WEBUI_API void webui_set_color(struct webui *w, uint8_t r, uint8_t g,
-                                   uint8_t b, uint8_t a);
-WEBUI_API void webui_dialog(struct webui *w,
-                                enum webui_dialog_type dlgtype, int flags,
-                                const char *title, const char *arg,
-                                char *result, size_t resultsz);
-WEBUI_API void webui_dispatch(struct webui *w, webui_dispatch_fn fn,
-                                  void *arg);
+WEBUI_API void webui_set_color(struct webui *w, uint8_t r, uint8_t g, uint8_t b, uint8_t a);
+WEBUI_API void webui_dispatch(struct webui *w, webui_dispatch_fn fn, void *arg);
 WEBUI_API void webui_terminate(struct webui *w);
 WEBUI_API void webui_exit(struct webui *w);
 WEBUI_API void webui_debug(const char *format, ...);
@@ -148,8 +126,7 @@ WEBUI_API int webui_msg(struct webui *w,enum webui_msg_type flag,const char *tit
 WEBUI_API void webui_file(struct webui *w,enum webui_file_type flag,const char *filter,char *result, size_t resultsz);
 
 
-WEBUI_API int webui(const char *title, const char *url, int width,
-                        int height, int border) {
+WEBUI_API int webui(const char *title, const char *url, int width, int height, int border) {
   struct webui webui;
   memset(&webui, 0, sizeof(webui));
   webui.title = title;
@@ -222,14 +199,9 @@ static void external_message_received_cb(WebKitUserContentManager *m,
   if (w->external_invoke_cb == NULL) {
     return;
   }
-  JSGlobalContextRef context = webkit_javascript_result_get_global_context(r);
-  JSValueRef value = webkit_javascript_result_get_value(r);
-  JSStringRef js = JSValueToStringCopy(context, value, NULL);
-  size_t n = JSStringGetMaximumUTF8CStringSize(js);
-  char *s = g_new(char, n);
-  JSStringGetUTF8CString(js, s, n);
+  JSCValue * value = webkit_javascript_result_get_js_value(r);
+  char *s=jsc_value_to_string (value);
   w->external_invoke_cb(w, s);
-  JSStringRelease(js);
   g_free(s);
 }
 
@@ -434,102 +406,49 @@ WEBUI_API void webui_file(struct webui *w,enum webui_file_type flag,const char *
     GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER,"_Cancel", GTK_RESPONSE_CANCEL,"_Open",GTK_RESPONSE_ACCEPT, NULL);
     break;
   }
-    if(flag!=WEBUI_FILE_DIRECTORY){
-      l=strlen(filter);
-      if(l!=0){
-        j=0;
-        filt = gtk_file_filter_new();
-        gtk_file_filter_set_name (filt,filter);
-        for ( i = 0; i < l; i++){
-          if(filter[i]==';'){
+  printf("test");
+  if(flag!=WEBUI_FILE_DIRECTORY){
+    l=strlen(filter);
+    if(l!=0){
+      j=0;
+      filt = gtk_file_filter_new();
+      gtk_file_filter_set_name (filt,filter);
+      for ( i = 0; i < l; i++){
+        if(filter[i]==';'){
+           type[j]='\0';
+          gtk_file_filter_add_pattern(filt, type);  
+          j=0;
+        }else{
+          type[j]=filter[i];
+          j++;
+          if(i==(l-1)){
             type[j]='\0';
-            gtk_file_filter_add_pattern(filt, type);  
-            j=0;
-          }else{
-            type[j]=filter[i];
-            j++;
-            if(i==(l-1)){
-              type[j]='\0';
-              gtk_file_filter_add_pattern(filt, type); 
-            }
+            gtk_file_filter_add_pattern(filt, type); 
           }
         }
-        gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dlg), filt);
       }
-      
-      filt = gtk_file_filter_new();
-      gtk_file_filter_set_name (filt,"all");
-      gtk_file_filter_add_pattern(filt, "*.*"); 
       gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dlg), filt);
     }
-    gtk_file_chooser_set_local_only(GTK_FILE_CHOOSER(dlg), FALSE);
-    gtk_file_chooser_set_select_multiple(GTK_FILE_CHOOSER(dlg), FALSE);
-    gtk_file_chooser_set_show_hidden(GTK_FILE_CHOOSER(dlg), TRUE);
-    gtk_file_chooser_set_do_overwrite_confirmation(GTK_FILE_CHOOSER(dlg), TRUE);
-    gtk_file_chooser_set_create_folders(GTK_FILE_CHOOSER(dlg), TRUE);
-    gint response = gtk_dialog_run(GTK_DIALOG(dlg));
-    if (response == GTK_RESPONSE_ACCEPT) {
-      gchar *filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dlg));
-      g_strlcpy(result, filename, resultsz);
-      g_free(filename);
-    }
-    gtk_widget_destroy(dlg);
+    printf("test");
 
+    filt = gtk_file_filter_new();
+    gtk_file_filter_set_name (filt,"all");
+    gtk_file_filter_add_pattern(filt, "*.*"); 
+    gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dlg), filt);
+  }
+  gtk_file_chooser_set_local_only(GTK_FILE_CHOOSER(dlg), FALSE);
+  gtk_file_chooser_set_select_multiple(GTK_FILE_CHOOSER(dlg), FALSE);
+  gtk_file_chooser_set_show_hidden(GTK_FILE_CHOOSER(dlg), TRUE);
+  gtk_file_chooser_set_do_overwrite_confirmation(GTK_FILE_CHOOSER(dlg), TRUE);
+  gtk_file_chooser_set_create_folders(GTK_FILE_CHOOSER(dlg), TRUE);
+  gint response = gtk_dialog_run(GTK_DIALOG(dlg));
+  if (response == GTK_RESPONSE_ACCEPT) {
+    gchar *filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dlg));
+    g_strlcpy(result, filename, resultsz);
+    g_free(filename);
+  }
+  gtk_widget_destroy(dlg);
 } 
-
-WEBUI_API void webui_dialog(struct webui *w,
-                                enum webui_dialog_type dlgtype, int flags,
-                                const char *title, const char *arg,
-                                char *result, size_t resultsz) {
-  GtkWidget *dlg;
-  if (result != NULL) {
-    result[0] = '\0';
-  }
-  if (dlgtype == WEBUI_DIALOG_TYPE_OPEN ||
-      dlgtype == WEBUI_DIALOG_TYPE_SAVE) {
-    dlg = gtk_file_chooser_dialog_new(
-        title, GTK_WINDOW(w->priv.window),
-        (dlgtype == WEBUI_DIALOG_TYPE_OPEN
-             ? (flags & WEBUI_DIALOG_FLAG_DIRECTORY
-                    ? GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER
-                    : GTK_FILE_CHOOSER_ACTION_OPEN)
-             : GTK_FILE_CHOOSER_ACTION_SAVE),
-        "_Cancel", GTK_RESPONSE_CANCEL,
-        (dlgtype == WEBUI_DIALOG_TYPE_OPEN ? "_Open" : "_Save"),
-        GTK_RESPONSE_ACCEPT, NULL);
-    gtk_file_chooser_set_local_only(GTK_FILE_CHOOSER(dlg), FALSE);
-    gtk_file_chooser_set_select_multiple(GTK_FILE_CHOOSER(dlg), FALSE);
-    gtk_file_chooser_set_show_hidden(GTK_FILE_CHOOSER(dlg), TRUE);
-    gtk_file_chooser_set_do_overwrite_confirmation(GTK_FILE_CHOOSER(dlg), TRUE);
-    gtk_file_chooser_set_create_folders(GTK_FILE_CHOOSER(dlg), TRUE);
-    gint response = gtk_dialog_run(GTK_DIALOG(dlg));
-    if (response == GTK_RESPONSE_ACCEPT) {
-      gchar *filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dlg));
-      g_strlcpy(result, filename, resultsz);
-      g_free(filename);
-    }
-    gtk_widget_destroy(dlg);
-  } else if (dlgtype == WEBUI_DIALOG_TYPE_ALERT) {
-    GtkMessageType type = GTK_MESSAGE_OTHER;
-    switch (flags & WEBUI_DIALOG_FLAG_ALERT_MASK) {
-    case WEBUI_DIALOG_FLAG_INFO:
-      type = GTK_MESSAGE_INFO;
-      break;
-    case WEBUI_DIALOG_FLAG_WARNING:
-      type = GTK_MESSAGE_WARNING;
-      break;
-    case WEBUI_DIALOG_FLAG_ERROR:
-      type = GTK_MESSAGE_ERROR;
-      break;
-    }
-    dlg = gtk_message_dialog_new(GTK_WINDOW(w->priv.window), GTK_DIALOG_MODAL,
-                                 type, GTK_BUTTONS_OK, "%s", title);
-    gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(dlg), "%s",
-                                             arg);
-    gtk_dialog_run(GTK_DIALOG(dlg));
-    gtk_widget_destroy(dlg);
-  }
-}
 
 static void webui_eval_finished(GObject *object, GAsyncResult *result,
                                   gpointer userdata) {

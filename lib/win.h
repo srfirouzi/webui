@@ -56,11 +56,6 @@ struct webui {
   void *userdata;
 };
 
-enum webui_dialog_type {
-  WEBUI_DIALOG_TYPE_OPEN = 0,
-  WEBUI_DIALOG_TYPE_SAVE = 1,
-  WEBUI_DIALOG_TYPE_ALERT = 2
-};
 #define WEBUI_MSG_ICON_MASK (3 << 0)
 #define WEBUI_MSG_BUTTON_MASK (3 << 2)
 enum webui_msg_type{
@@ -90,13 +85,6 @@ enum webui_file_type{
   WEBUI_FILE_DIRECTORY=2
 };
 
-#define WEBUI_DIALOG_FLAG_FILE (0 << 0)
-#define WEBUI_DIALOG_FLAG_DIRECTORY (1 << 0)
-
-#define WEBUI_DIALOG_FLAG_INFO (1 << 1)
-#define WEBUI_DIALOG_FLAG_WARNING (2 << 1)
-#define WEBUI_DIALOG_FLAG_ERROR (3 << 1)
-#define WEBUI_DIALOG_FLAG_ALERT_MASK (3 << 1)
 
 typedef void (*webui_dispatch_fn)(struct webui *w, void *arg);
 
@@ -137,14 +125,8 @@ WEBUI_API int webui_eval(struct webui *w, const char *js);
 WEBUI_API int webui_inject_css(struct webui *w, const char *css);
 WEBUI_API void webui_set_title(struct webui *w, const char *title);
 WEBUI_API void webui_set_fullscreen(struct webui *w, int fullscreen);
-WEBUI_API void webui_set_color(struct webui *w, uint8_t r, uint8_t g,
-                                   uint8_t b, uint8_t a);
-WEBUI_API void webui_dialog(struct webui *w,
-                                enum webui_dialog_type dlgtype, int flags,
-                                const char *title, const char *arg,
-                                char *result, size_t resultsz);
-WEBUI_API void webui_dispatch(struct webui *w, webui_dispatch_fn fn,
-                                  void *arg);
+WEBUI_API void webui_set_color(struct webui *w, uint8_t r, uint8_t g,uint8_t b, uint8_t a);
+WEBUI_API void webui_dispatch(struct webui *w, webui_dispatch_fn fn,void *arg);
 WEBUI_API void webui_terminate(struct webui *w);
 WEBUI_API void webui_exit(struct webui *w);
 WEBUI_API void webui_debug(const char *format, ...);
@@ -154,8 +136,7 @@ WEBUI_API int webui_msg(struct webui *w,enum webui_msg_type flag,const char *tit
 WEBUI_API void webui_file(struct webui *w,enum webui_file_type flag,const char *filter,char *result, size_t resultsz);
 
 
-WEBUI_API int webui(const char *title, const char *url, int width,
-                        int height, int border) {
+WEBUI_API int webui(const char *title, const char *url, int width,int height, int border) {
   struct webui webui;
   memset(&webui, 0, sizeof(webui));
   webui.title = title;
@@ -1440,92 +1421,6 @@ WEBUI_API void webui_file(struct webui *w,enum webui_file_type flag,const char *
 
 }
 
-WEBUI_API void webui_dialog(struct webui *w,
-                                enum webui_dialog_type dlgtype, int flags,
-                                const char *title, const char *arg,
-                                char *result, size_t resultsz) {
-  if (dlgtype == WEBUI_DIALOG_TYPE_OPEN ||
-      dlgtype == WEBUI_DIALOG_TYPE_SAVE) {
-    IFileDialog *dlg = NULL;
-    IShellItem *res = NULL;
-    WCHAR *ws = NULL;
-    char *s = NULL;
-    FILEOPENDIALOGOPTIONS opts, add_opts;
-    if (dlgtype == WEBUI_DIALOG_TYPE_OPEN) {
-      if (CoCreateInstance(
-              iid_unref(&CLSID_FileOpenDialog), NULL, CLSCTX_INPROC_SERVER,
-              iid_unref(&IID_IFileOpenDialog), (void **)&dlg) != S_OK) {
-        goto error_dlg;
-      }
-      if (flags & WEBUI_DIALOG_FLAG_DIRECTORY) {
-        add_opts |= FOS_PICKFOLDERS;
-      }
-      add_opts |= FOS_NOCHANGEDIR | FOS_ALLNONSTORAGEITEMS | FOS_NOVALIDATE |
-                  FOS_PATHMUSTEXIST | FOS_FILEMUSTEXIST | FOS_SHAREAWARE |
-                  FOS_NOTESTFILECREATE | FOS_NODEREFERENCELINKS |
-                  FOS_FORCESHOWHIDDEN | FOS_DEFAULTNOMINIMODE;
-    } else {
-      if (CoCreateInstance(
-              iid_unref(&CLSID_FileSaveDialog), NULL, CLSCTX_INPROC_SERVER,
-              iid_unref(&IID_IFileSaveDialog), (void **)&dlg) != S_OK) {
-        goto error_dlg;
-      }
-      add_opts |= FOS_OVERWRITEPROMPT | FOS_NOCHANGEDIR |
-                  FOS_ALLNONSTORAGEITEMS | FOS_NOVALIDATE | FOS_SHAREAWARE |
-                  FOS_NOTESTFILECREATE | FOS_NODEREFERENCELINKS |
-                  FOS_FORCESHOWHIDDEN | FOS_DEFAULTNOMINIMODE;
-    }
-    if (dlg->lpVtbl->GetOptions(dlg, &opts) != S_OK) {
-      goto error_dlg;
-    }
-    opts &= ~FOS_NOREADONLYRETURN;
-    opts |= add_opts;
-    if (dlg->lpVtbl->SetOptions(dlg, opts) != S_OK) {
-      goto error_dlg;
-    }
-    if (dlg->lpVtbl->Show(dlg, w->priv.hwnd) != S_OK) {
-      goto error_dlg;
-    }
-    if (dlg->lpVtbl->GetResult(dlg, &res) != S_OK) {
-      goto error_dlg;
-    }
-    if (res->lpVtbl->GetDisplayName(res, SIGDN_FILESYSPATH, &ws) != S_OK) {
-      goto error_result;
-    }
-    s = webui_from_utf16(ws);
-    strncpy(result, s, resultsz);
-    result[resultsz - 1] = '\0';
-    CoTaskMemFree(ws);
-  error_result:
-    res->lpVtbl->Release(res);
-  error_dlg:
-    dlg->lpVtbl->Release(dlg);
-    return;
-  } else if (dlgtype == WEBUI_DIALOG_TYPE_ALERT) {
-#if 0
-    /* MinGW often doesn't contain TaskDialog, we'll use MessageBox for now */
-    WCHAR *wtitle = webui_to_utf16(title);
-    WCHAR *warg = webui_to_utf16(arg);
-    TaskDialog(w->priv.hwnd, NULL, NULL, wtitle, warg, 0, NULL, NULL);
-    GlobalFree(warg);
-    GlobalFree(wtitle);
-#else
-    UINT type = MB_OK;
-    switch (flags & WEBUI_DIALOG_FLAG_ALERT_MASK) {
-    case WEBUI_DIALOG_FLAG_INFO:
-      type |= MB_ICONINFORMATION;
-      break;
-    case WEBUI_DIALOG_FLAG_WARNING:
-      type |= MB_ICONWARNING;
-      break;
-    case WEBUI_DIALOG_FLAG_ERROR:
-      type |= MB_ICONERROR;
-      break;
-    }
-    MessageBox(w->priv.hwnd, arg, title, type);
-#endif
-  }
-}
 
 WEBUI_API void webui_terminate(struct webui *w) { PostQuitMessage(0); }
 

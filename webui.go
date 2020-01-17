@@ -6,7 +6,7 @@
 // advanced and featureful set of APIs, including Go-to-JavaScript bindings.
 //
 // The library uses gtk-webkit, Cocoa/Webkit and MSHTML (IE8..11) as a browser
-// engine and supports Linux, MacOS and Windows 7..10 respectively.
+// engine and supports Linux, Windows 7..10 respectively.
 //
 package webui
 
@@ -95,12 +95,6 @@ static inline void CgoWebUiFile(void *w, int type,char *filter, char *res, size_
 	webui_file(w, type,(const char*) filter, res, ressz);
 }
 
-static inline void CgoDialog(void *w, int dlgtype, int flags,
-		char *title, char *arg, char *res, size_t ressz) {
-	webui_dialog(w, dlgtype, flags,
-		(const char*)title, (const char*) arg, res, ressz);
-}
-
 static inline int CgoWebUiEval(void *w, char *js) {
 	return webui_eval((struct webui *)w, js);
 }
@@ -132,34 +126,50 @@ import (
 	"unsafe"
 )
 
-const (
-	WEBUI_BORDER_NONE    = 2
-	WEBUI_BORDER_DIALOG  = 1
-	WEBUI_BORDER_SIZABLE = 0
-)
+// WindowBorder is border for window
+type WindowBorder int
 
 const (
-	/* show flag*/
-	WEBUI_MSG_MSG     = 0
-	WEBUI_MSG_INFO    = 1
-	WEBUI_MSG_WARNING = 2
-	WEBUI_MSG_ERROR   = 3
-	/*button flags*/
-	WEBUI_MSG_OK            = 0
-	WEBUI_MSG_OK_CANCEL     = 4
-	WEBUI_MSG_YES_NO        = 8
-	WEBUI_MSG_YES_NO_CANCEL = 12
-	/* msg response */
-	WEBUI_RESPONSE_OK     = 0
-	WEBUI_RESPONSE_CANCEL = 1
-	WEBUI_RESPONSE_YES    = 2
-	WEBUI_RESPONSE_NO     = 3
+	// BorderNone is none border for window
+	BorderNone WindowBorder = C.WEBUI_BORDER_NONE
+	// BorderDialog is dialog border for window
+	BorderDialog WindowBorder = C.WEBUI_BORDER_DIALOG
+	// BorderSizable is sizable border for window
+	BorderSizable WindowBorder = C.WEBUI_BORDER_SIZABLE
 )
 
+// MessageFlag flag for msg function
+type MessageFlag int
+
+//MessageResponse respond button
+type MessageResponse int
+
 const (
-	WEBUI_FILE_OPEN      = 0
-	WEBUI_FILE_SAVE      = 1
-	WEBUI_FILE_DIRECTORY = 2
+	//MessageMsg default message box style
+	MessageMsg MessageFlag = C.WEBUI_MSG_MSG
+	//MessageInfo information message box style
+	MessageInfo MessageFlag = C.WEBUI_MSG_INFO
+	//MessageWarning warning message box style
+	MessageWarning MessageFlag = C.WEBUI_MSG_WARNING
+	//MessageError error message box style
+	MessageError MessageFlag = C.WEBUI_MSG_ERROR
+	//MessageButtonOK message box by ok button
+	MessageButtonOK MessageFlag = C.WEBUI_MSG_OK
+	//MessageButtonOKCancel message box by ok/cancel button
+	MessageButtonOKCancel MessageFlag = C.WEBUI_MSG_OK_CANCEL
+	//MessageButtonYesNo message box by yes/no button
+	MessageButtonYesNo MessageFlag = C.WEBUI_MSG_YES_NO
+	//MessageButtonYesNoCancel message box by yes/no/cansel button
+	MessageButtonYesNoCancel MessageFlag = C.WEBUI_MSG_YES_NO_CANCEL
+
+	// MessageResponseOk ok click response
+	MessageResponseOk MessageResponse = C.WEBUI_RESPONSE_OK
+	// MessageResponseCancel cancel click response
+	MessageResponseCancel MessageResponse = C.WEBUI_RESPONSE_CANCEL
+	// MessageResponseYes yes click response
+	MessageResponseYes MessageResponse = C.WEBUI_RESPONSE_YES
+	// MessageResponseNo no click response
+	MessageResponseNo MessageResponse = C.WEBUI_RESPONSE_NO
 )
 
 func init() {
@@ -174,22 +184,13 @@ func init() {
 // Window appearance can be customized using title, width, height and resizable parameters.
 // URL must be provided and can user either a http or https protocol, or be a
 // local file:// URL. On some platforms "data:" URLs are also supported
-// (Linux/MacOS).
-func Open(title, url string, w, h int, border int) error {
+// (Linux).
+func Open(title, url string, w, h int, border WindowBorder) error {
 	titleStr := C.CString(title)
 	defer C.free(unsafe.Pointer(titleStr))
 	urlStr := C.CString(url)
 	defer C.free(unsafe.Pointer(urlStr))
-	bord := C.int(0)
-	switch border {
-	case WEBUI_BORDER_NONE:
-		bord = C.int(0)
-	case WEBUI_BORDER_DIALOG:
-		bord = C.int(1)
-	case WEBUI_BORDER_SIZABLE:
-		bord = C.int(2)
-	}
-
+	bord := C.int(border)
 	r := C.webui(titleStr, urlStr, C.int(w), C.int(h), bord)
 	if r != 0 {
 		return errors.New("failed to create webui")
@@ -197,7 +198,7 @@ func Open(title, url string, w, h int, border int) error {
 	return nil
 }
 
-// Debug prints a debug string using stderr on Linux/BSD, NSLog on MacOS and
+// Debug prints a debug string using stderr on Linux/BSD
 // OutputDebugString on Windows.
 func Debug(a ...interface{}) {
 	s := C.CString(fmt.Sprint(a...))
@@ -205,8 +206,7 @@ func Debug(a ...interface{}) {
 	C.webui_print_log(s)
 }
 
-// Debugf prints a formatted debug string using stderr on Linux/BSD, NSLog on
-// MacOS and OutputDebugString on Windows.
+// Debugf prints a formatted debug string using stderr on Linux/BSD and OutputDebugString on Windows.
 func Debugf(format string, a ...interface{}) {
 	s := C.CString(fmt.Sprintf(format, a...))
 	defer C.free(unsafe.Pointer(s))
@@ -219,6 +219,8 @@ func Debugf(format string, a ...interface{}) {
 // JavaScript. To pass more complex data serialized JSON or base64 encoded
 // string can be used.
 type ExternalInvokeCallbackFunc func(w WebUI, data string)
+
+//CloseCallbackFunc is function type for callback in user can close the windows
 type CloseCallbackFunc func(w WebUI) bool
 
 // Settings is a set of parameters to customize the initial WebUI appearance
@@ -233,8 +235,8 @@ type Settings struct {
 	// Window height in pixels
 	Height int
 	// Allows/disallows window resizing
-	Border int
-	// Enable debugging tools (Linux/BSD/MacOS, on Windows use Firebug)
+	Border WindowBorder
+	// Enable debugging tools (Linux/BSD, on Windows use Firebug)
 	Debug bool
 	// A callback that is executed when JavaScript calls "window.external.invoke()"
 	ExternalInvokeCallback ExternalInvokeCallbackFunc
@@ -269,13 +271,14 @@ type WebUI interface {
 	// method must be called from the main thread only. See Dispatch() for more
 	// details.
 	InjectCSS(css string)
-
-	Msg(icon int, button int, title string, msg string) int
-	File(Type int, filter string) string
-	// Dialog() opens a system dialog of the given type and title. String
-	// argument can be provided for certain dialogs, such as alert boxes. For
-	// alert boxes argument is a message inside the dialog box.
-	Dialog(dlgType DialogType, flags int, title string, arg string) string
+	// Message() open message box and return button click by user
+	Message(title string, msg string, flags MessageFlag) MessageResponse
+	// FileOpen() open file open dialog and response selected file
+	FileOpen(filter string) string
+	// FileSave() open file save dialog and response selected file
+	FileSave(filter string) string
+	// DirectoryOpen() open directory open dialog and response selected directory
+	DirectoryOpen() string
 	// Terminate() breaks the main UI loop. This method must be called from the main thread
 	// only. See Dispatch() for more details.
 	Terminate()
@@ -294,31 +297,6 @@ type WebUI interface {
 	// Go value. You only need to call it if you change Go value asynchronously.
 	Bind(name string, v interface{}) (sync func(), err error)
 }
-
-// DialogType is an enumeration of all supported system dialog types
-type DialogType int
-
-const (
-	// DialogTypeOpen is a system file open dialog
-	DialogTypeOpen DialogType = iota
-	// DialogTypeSave is a system file save dialog
-	DialogTypeSave
-	// DialogTypeAlert is a system alert dialog (message box)
-	DialogTypeAlert
-)
-
-const (
-	// DialogFlagFile is a normal file picker dialog
-	DialogFlagFile = C.WEBUI_DIALOG_FLAG_FILE
-	// DialogFlagDirectory is an open directory dialog
-	DialogFlagDirectory = C.WEBUI_DIALOG_FLAG_DIRECTORY
-	// DialogFlagInfo is an info alert dialog
-	DialogFlagInfo = C.WEBUI_DIALOG_FLAG_INFO
-	// DialogFlagWarning is a warning alert dialog
-	DialogFlagWarning = C.WEBUI_DIALOG_FLAG_WARNING
-	// DialogFlagError is an error dialog
-	DialogFlagError = C.WEBUI_DIALOG_FLAG_ERROR
-)
 
 var (
 	m     sync.Mutex
@@ -417,15 +395,28 @@ func (w *webui) SetFullscreen(fullscreen bool) {
 	C.CgoWebUiSetFullscreen(w.w, C.int(boolToInt(fullscreen)))
 }
 
-func (w *webui) Msg(icon int, button int, title string, msg string) int {
+func (w *webui) Message(title string, msg string, flags MessageFlag) MessageResponse {
 	titlePtr := C.CString(title)
 	defer C.free(unsafe.Pointer(titlePtr))
 	msgPtr := C.CString(msg)
 	defer C.free(unsafe.Pointer(msgPtr))
-	res := C.CgoWebUiMsg(w.w, C.int(icon|button), titlePtr, msgPtr)
-	return int(res)
+	res := C.CgoWebUiMsg(w.w, C.int(flags), titlePtr, msgPtr)
+	return MessageResponse(res)
 }
-func (w *webui) File(Type int, filter string) string {
+
+func (w *webui) FileOpen(filter string) string {
+	return w.file(0, filter)
+}
+
+func (w *webui) FileSave(filter string) string {
+	return w.file(1, filter)
+}
+
+func (w *webui) DirectoryOpen() string {
+	return w.file(2, "")
+}
+
+func (w *webui) file(Type int, filter string) string {
 	const maxPath = 4096
 	filterPtr := C.CString(filter)
 	defer C.free(unsafe.Pointer(filterPtr))
@@ -434,19 +425,6 @@ func (w *webui) File(Type int, filter string) string {
 	C.CgoWebUiFile(w.w, C.int(Type), filterPtr, resultPtr, C.size_t(maxPath))
 	return C.GoString(resultPtr)
 
-}
-
-func (w *webui) Dialog(dlgType DialogType, flags int, title string, arg string) string {
-	const maxPath = 4096
-	titlePtr := C.CString(title)
-	defer C.free(unsafe.Pointer(titlePtr))
-	argPtr := C.CString(arg)
-	defer C.free(unsafe.Pointer(argPtr))
-	resultPtr := (*C.char)(C.calloc((C.size_t)(unsafe.Sizeof((*C.char)(nil))), (C.size_t)(maxPath)))
-	defer C.free(unsafe.Pointer(resultPtr))
-	C.CgoDialog(w.w, C.int(dlgType), C.int(flags), titlePtr,
-		argPtr, resultPtr, C.size_t(maxPath))
-	return C.GoString(resultPtr)
 }
 
 func (w *webui) Eval(js string) error {
