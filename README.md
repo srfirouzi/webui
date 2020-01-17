@@ -5,22 +5,6 @@
 A tiny cross-platform webui library for C/Golang to build modern cross-platform GUIs
 this fork from [webview](https://github.com/zserge/webview/)
 
-## new feature (todo/doing/done)
-
-- [ ] write api document for c / golang
-- [X] different window border
-- [x] set window icon if exist in resource by ID 100(windows only)
-- [x] callback for window events
-  - [x] close
-- [x] add min size for window
-  - [ ] resolve problem in wine on linux
-- [x] msg for dialog by multi button
-- [x] file save/open/directory dialog
-- [ ] add color selector dialog (ie11 don't support color input on html)
-- [ ] utf8 support(change only win.h)
-- [ ] cleanUp code and style 
- 
-
 
 It supports two-way JavaScript bindings (to call JavaScript from C/Go and to call C/Go from JavaScript).
 
@@ -50,7 +34,7 @@ import "github.com/srfirouzi/webui"
 func main() {
 	// Open wikipedia in a 800x600 resizable window
 	webui.Open("Minimal webui example",
-		"https://en.m.wikipedia.org/wiki/Main_Page", 800, 600, webui.WEBUI_BORDER_SIZABLE)
+		"https://en.m.wikipedia.org/wiki/Main_Page", 800, 600, webui.BorderResizable)
 }
 ```
 
@@ -65,6 +49,8 @@ $ go build -o webui-example && ./webui-example
 # http://tdm-gcc.tdragon.net/download
 $ go build -ldflags="-H windowsgui" -o webui-example.exe
 ```
+
+you can see [Golang API](go.md) genrate by [godocdown](https://github.com/robertkrimen/godocdown)
 
 
 
@@ -89,7 +75,7 @@ go func() {
  	// Set up your http server here
 	log.Fatal(http.Serve(ln, nil))
 }()
-webui.Open("Hello", "http://"+ln.Addr().String(), 400, 300, webui.WEBUI_BORDER_DIALOG)
+webui.Open("Hello", "http://"+ln.Addr().String(), 400, 300, webui.BorderResizable)
 ```
 
 Injecting the content via JS bindings is a bit more complicated, but feels more solid and does not expose any additional open TCP ports.
@@ -100,7 +86,7 @@ Leave `webui.Settings.URL` empty to start with bare minimal HTML5. It will open 
 const myHTML = `<!doctype html><html>....</html>`
 w := webui.New(webui.Settings{
   URL: `data:text/html,` + url.PathEscape(myHTML),
-  Border:WEBUI_BORDER_SIZABLE,
+  Border:BorderResizable,
 })
 ```
 
@@ -150,8 +136,7 @@ other callback `webui.Settings.CloseCallback` for window close button event.if c
 
 If terminal output is unavailable (e.g. if you launch app bundle on MacOS or
 GUI app on Windows) you may use `webui.Debug()` and `webui.Debugf()` to
-print logs. On MacOS such logs will be printed via NSLog and can be seen in the
-`Console` app. On Windows they use `OutputDebugString` and can be seen using
+print logs.On Windows they use `OutputDebugString` and can be seen using
 `DebugView` app. On Linux logging is done to stderr and can be seen in the
 terminal or redirected to a file.
 
@@ -172,6 +157,10 @@ Lite is still available and just works.
 On Linux you get a standalone executable. It will depend on GTK3 and GtkWebkit2, so if you distribute your app in DEB or RPM format include those dependencies. An application icon can be specified by providing a `.desktop` file.
 
 On Windows you probably would like to have a custom icon for your executable. It can be done by providing a resource file, compiling it and linking with it,icon by id 100 in resource if exist used for window icon, by [rsrc](https://github.com/srfirouzi/rsrc) can make this elements
+
+## dialog
+webui have sample dialog window for used,by `w.Message()` to show message box by different button,for use from file dialog have `w.FileOpen`,`w.FileSave`,`DirectoryOpen` ,response selected file or directory, filter is paterns by separator `;` for example "*.jpg;*.png;*.bmp"
+
 
 ## WebUI for C developers
 
@@ -198,10 +187,10 @@ int main() {
   border can set this value
   WEBUI_BORDER_NONE=2,
   WEBUI_BORDER_DIALOG=1,
-  WEBUI_BORDER_SIZABLE=0
+  WEBUI_BORDER_RESIZABLE=0
   */
   webui("Minimal webui example",
-	  "https://en.m.wikipedia.org/wiki/Main_Page", 800, 600, WEBUI_BORDER_SIZABLE);
+	  "https://en.m.wikipedia.org/wiki/Main_Page", 800, 600, WEBUI_BORDER_RESIZABLE);
   return 0;
 }
 ```
@@ -245,6 +234,8 @@ If you want to have more control over the app lifecycle you can use the followin
       .height = h,
       .debug = debug,
       .border = border,
+      .minWidth=minWidth
+      .minHeight=minHeight
   };
   /* Create webui window using the provided options */
   webui_init(&webui);
@@ -261,6 +252,13 @@ If you want to have more control over the app lifecycle you can use the followin
 
   /* To terminate the webui main loop: */
   webui_terminate(&webui);
+
+  /* to show message box and respose button key*/
+  webui_msg(&webui,flag,"title","msg")
+
+  /* to show save/open/directory dialog and return result on result*/
+  webui_file(&webui,filetype,"*.jpg;*.png",*result,resultsz);
+
 
   /* To print logs to stderr, MacOS Console or DebugView: */
   webui_debug("exited: %d\n", 1);
@@ -325,6 +323,11 @@ GOOS=windows GOARCH=amd64 CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc go build -ldfl
 #32bit
 GOOS=windows GOARCH=386 CGO_ENABLED=1 CC=i686-w64-mingw32-gcc go build -ldflags "-H windowsgui"
 ```
+
+## new feature (todo/doing/done)
+
+- [ ] utf8 support(change only win.h)
+
 
 ## License
 

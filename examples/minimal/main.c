@@ -13,6 +13,6 @@ int main() {
 #endif
   /* Open wikipedia in a 800x600 resizable window */
   webui("Minimal webui example",
-	  "https://en.m.wikipedia.org/wiki/Main_Page", 800, 600, WEBUI_BORDER_SIZABLE);
+	  "https://en.m.wikipedia.org/wiki/Main_Page", 800, 600, WEBUI_BORDER_RESIZABLE);
   return 0;
 }
