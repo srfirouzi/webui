@@ -611,7 +611,6 @@ UI_FilterDataObject(IDocHostUIHandler FAR *This, IDataObject __RPC_FAR *pDO,
   return S_FALSE;
 }
 
-static const TCHAR *classname = "WebView";
 static const SAFEARRAYBOUND ArrayBound = {1, 0};
 
 static IOleClientSiteVtbl MyIOleClientSiteTable = {
@@ -962,7 +961,7 @@ static LRESULT CALLBACK wndproc(HWND hwnd, UINT uMsg, WPARAM wParam,
     return TRUE;
   }
   }
-  return DefWindowProc(hwnd, uMsg, wParam, lParam);
+  return DefWindowProcW(hwnd, uMsg, wParam, lParam);
 }
 
 #define WEBUI_KEY_FEATURE_BROWSER_EMULATION                                  \
@@ -994,7 +993,7 @@ static int webui_fix_ie_compat_mode() {
 }
 
 WEBUI_API int webui_init(struct webui *w) {
-  WNDCLASSEX wc;
+  WNDCLASSEXW wc;
   HINSTANCE hInstance;
   DWORD style;
   RECT clientRect;
@@ -1011,12 +1010,12 @@ WEBUI_API int webui_init(struct webui *w) {
   if (OleInitialize(NULL) != S_OK) {
     return -1;
   }
-  ZeroMemory(&wc, sizeof(WNDCLASSEX));
-  wc.cbSize = sizeof(WNDCLASSEX);
+  ZeroMemory(&wc, sizeof(WNDCLASSEXW));
+  wc.cbSize = sizeof(WNDCLASSEXW);
   wc.hInstance = hInstance;
   wc.lpfnWndProc = wndproc;
-  wc.lpszClassName = classname;
-  RegisterClassEx(&wc);
+  wc.lpszClassName = L"WebView";
+  RegisterClassExW(&wc);
   switch (w->border){
     case WEBUI_BORDER_RESIZABLE:
       style = WS_OVERLAPPEDWINDOW;
@@ -1045,7 +1044,7 @@ WEBUI_API int webui_init(struct webui *w) {
   rect.top = top;
 
   w->priv.hwnd =
-      CreateWindowEx(0, classname, w->title, style, rect.left, rect.top,
+      CreateWindowExW(0, L"WebView", L"", style, rect.left, rect.top,
                      rect.right - rect.left, rect.bottom - rect.top,
                      HWND_DESKTOP, NULL, hInstance, (void *)w);
   if (w->priv.hwnd == 0) {
@@ -1056,12 +1055,13 @@ WEBUI_API int webui_init(struct webui *w) {
   SetWindowLongPtr(w->priv.hwnd, GWLP_USERDATA, (LONG_PTR)w);
 
   DisplayHTMLPage(w);
-
-  SetWindowText(w->priv.hwnd, w->title);
+  WCHAR *Ltitle=webui_to_utf16(w->title);
+  SetWindowTextW(w->priv.hwnd,Ltitle);
+  GlobalFree(Ltitle);
   ShowWindow(w->priv.hwnd, SW_SHOWDEFAULT);
   UpdateWindow(w->priv.hwnd);
   SetFocus(w->priv.hwnd);
-
+  
   return 0;
 }
 
@@ -1174,7 +1174,9 @@ WEBUI_API void webui_dispatch(struct webui *w, webui_dispatch_fn fn,
 }
 
 WEBUI_API void webui_set_title(struct webui *w, const char *title) {
-  SetWindowText(w->priv.hwnd, title);
+  WCHAR *Ltitle=webui_to_utf16(title);
+  SetWindowTextW(w->priv.hwnd, Ltitle);
+  GlobalFree(Ltitle);
 }
 
 WEBUI_API void webui_set_fullscreen(struct webui *w, int fullscreen) {
