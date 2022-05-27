@@ -312,7 +312,7 @@ cross compile need active cgo and installed cross compile tools for c language.
 first install mingw
 ```bash
 #ubuntu
-sudo apt install binutils-mingw-w64 gcc-mingw-w64-x86-64
+sudo apt install binutils-mingw-w64 gcc-mingw-w64
 ```
 then set envierment elements to use by go compiler 
 
