@@ -21,7 +21,7 @@ If you are interested in writing WebUI apps in C, [skip to the next section](#we
 Install WebUI library with `go get`:
 
 ```
-$ go get github.com/srfirouzi/webui
+$ go get github.com/cybcorn/webui
 ```
 
 Import the package and start using it:
@@ -29,7 +29,7 @@ Import the package and start using it:
 ```go
 package main
 
-import "github.com/srfirouzi/webui"
+import "github.com/cybcorn/webui"
 
 func main() {
 	// Open wikipedia in a 800x600 resizable window
@@ -156,7 +156,7 @@ Lite is still available and just works.
 
 On Linux you get a standalone executable. It will depend on GTK3 and GtkWebkit2, so if you distribute your app in DEB or RPM format include those dependencies. An application icon can be specified by providing a `.desktop` file.
 
-On Windows you probably would like to have a custom icon for your executable. It can be done by providing a resource file, compiling it and linking with it,icon by id 100 in resource if exist used for window icon, by [rsrc](https://github.com/srfirouzi/rsrc) can make this elements
+On Windows you probably would like to have a custom icon for your executable. It can be done by providing a resource file, compiling it and linking with it,icon by id 100 in resource if exist used for window icon, by [rsrc](https://github.com/cybcorn/rsrc) can make this elements
 
 ## dialog
 webui have sample dialog window for used,by `w.Message()` to show message box by different button,for use from file dialog have `w.FileOpen`,`w.FileSave`,`DirectoryOpen` ,response selected file or directory, filter is paterns by separator `;` for example "*.jpg;*.png;*.bmp"
@@ -166,7 +166,7 @@ webui have sample dialog window for used,by `w.Message()` to show message box by
 
 ### Getting started
 
-Download [lib/gtk.h](https://raw.githubusercontent.com/srfirouzi/webui/master/lib/gtk.h) for linux or Download [lib/win.h](https://raw.githubusercontent.com/srfirouzi/webui/master/lib/win.h) for window and include it in your C code:
+Download [lib/gtk.h](https://raw.githubusercontent.com/cybcorn/webui/master/lib/gtk.h) for linux or Download [lib/win.h](https://raw.githubusercontent.com/cybcorn/webui/master/lib/win.h) for window and include it in your C code:
 
 ```c
 // main.c
@@ -285,6 +285,20 @@ window.external.invoke('some arg');
 // base64.
 window.external.invoke(JSON.stringify({fn: 'sum', x: 5, y: 3}));
 ```
+
+## bug
+On June 8, 2023, despite a bug in webkit2gtk, there was no ability to run windows.external, this problem is solved with this piece of code in the html text.
+
+```javascript
+if(window.external === undefined){
+  window.external={
+    invoke:function(x){
+      window.webkit.messageHandlers.external.postMessage(x);
+    }
+  }
+}
+```
+
 
 webui library is meant to be used from a single UI thread only. So if you
 want to call `webui_eval` or `webui_terminate` from some background thread

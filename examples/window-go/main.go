@@ -43,6 +43,12 @@ var indexHTML = `
 		<button onclick="external.invoke('winClose');document.getElementById('close').value='closable'">window is closable</button>
 		<button onclick="external.invoke('winUnClose');document.getElementById('close').value='isnt closable'"> window isn't closable</button>
 		<input id="close" value="closable" type="text" />
+		<script>
+		// for resolve bug on webkit2gtk
+		if(window.external === undefined){
+			window.external={invoke:function(x){window.webkit.messageHandlers.external.postMessage(x);}}
+		}
+		</script>
 	</body>
 </html>
 `
