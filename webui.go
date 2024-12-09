@@ -12,7 +12,7 @@ package webui
 
 /*
 #cgo linux openbsd freebsd CFLAGS: -DWEBUI_GTK=1
-#cgo linux openbsd freebsd pkg-config: gtk+-3.0 webkit2gtk-4.0
+#cgo linux openbsd freebsd pkg-config: gtk+-3.0 webkit2gtk-4.1
 
 #cgo windows CFLAGS: -DWEBUI_WIN=1
 #cgo windows LDFLAGS: -lole32 -lcomctl32 -loleaut32 -luuid -lgdi32
