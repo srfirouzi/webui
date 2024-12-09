@@ -21,7 +21,7 @@ If you are interested in writing WebUI apps in C, [skip to the next section](#we
 Install WebUI library with `go get`:
 
 ```
-$ go get github.com/cybcorn/webui
+$ go get github.com/srfirouzi/webui
 ```
 
 Import the package and start using it:
@@ -29,7 +29,7 @@ Import the package and start using it:
 ```go
 package main
 
-import "github.com/cybcorn/webui"
+import "github.com/srfirouzi/webui"
 
 func main() {
 	// Open wikipedia in a 800x600 resizable window
